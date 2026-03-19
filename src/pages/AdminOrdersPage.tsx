@@ -102,7 +102,10 @@ const AdminOrdersPage = () => {
               <div key={order._id || order.id} className="bg-card rounded-2xl p-4 card-shadow animate-fade-in border border-border">
                 <div className="flex justify-between items-start mb-2">
                   <div>
-                    <p className="font-semibold text-foreground">{order.student}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-foreground">{order.student}</p>
+                      <span className="text-[10px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded uppercase">{order.admissionNumber}</span>
+                    </div>
                     <p className="text-xs text-muted-foreground">{order.items}</p>
                     <p className="text-[10px] text-muted-foreground mt-0.5">{order.date}</p>
                   </div>

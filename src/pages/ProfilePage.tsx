@@ -40,7 +40,7 @@ const ProfilePage = () => {
   const session = getSession();
   const [orders, setOrders] = useState<Order[]>([]);
   const [notificationsOn, setNotificationsOn] = useState(true);
-  const [loyalty, setLoyalty] = useState({ points: 0, totalEarned: 0, email: "" });
+  const [loyalty, setLoyalty] = useState({ points: 0, totalEarned: 0, admissionNumber: "" });
   const [loading, setLoading] = useState(true);
 
   const loadProfileData = async () => {
@@ -48,8 +48,8 @@ const ProfilePage = () => {
     setLoading(true);
     try {
       const allOrders = await getStoredOrders();
-      const myOrders = allOrders.filter(o => o.studentEmail === session.email);
-      const pointsData = await getLoyalty(session.email);
+      const myOrders = allOrders.filter(o => o.admissionNumber === session.admissionNumber);
+      const pointsData = await getLoyalty(session.admissionNumber);
 
       setOrders(myOrders);
       setLoyalty(pointsData);
@@ -85,7 +85,7 @@ const ProfilePage = () => {
             <User className="w-10 h-10 text-primary" />
           </div>
           <h2 className="text-2xl font-extrabold text-foreground tracking-tight">{session?.name || "Student"}</h2>
-          <p className="text-sm font-medium text-muted-foreground">{session?.email || "student@freshcanteen.com"}</p>
+          <p className="text-sm font-medium text-muted-foreground">{session?.admissionNumber || "24CS044"}</p>
           <p className="text-[10px] font-bold text-primary mt-2 uppercase tracking-widest bg-primary/5 inline-block px-3 py-1 rounded-full">ID: {session?.id?.toUpperCase() || "STU-0000"}</p>
         </div>
 

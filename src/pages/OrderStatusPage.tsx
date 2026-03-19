@@ -26,7 +26,7 @@ const OrderStatusPage = () => {
 
     try {
       const allOrders = await getStoredOrders();
-      const myOrders = allOrders.filter(o => o.studentEmail === session.email);
+      const myOrders = allOrders.filter(o => o.admissionNumber === session.admissionNumber);
       const wait = await estimateWait();
 
       setOrders(myOrders);

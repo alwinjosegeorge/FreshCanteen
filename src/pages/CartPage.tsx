@@ -12,13 +12,13 @@ const CartPage = () => {
   const { items, updateQuantity, removeItem, totalPrice, clearCart } = useCart();
   const [paymentMethod, setPaymentMethod] = useState<"online" | "cash">("online");
   const [usePoints, setUsePoints] = useState(false);
-  const [loyalty, setLoyalty] = useState({ points: 0, totalEarned: 0, email: "" });
+  const [loyalty, setLoyalty] = useState({ points: 0, totalEarned: 0, admissionNumber: "" });
   const navigate = useNavigate();
   const session = getSession();
 
   const loadLoyalty = async () => {
     if (session) {
-      const data = await getLoyalty(session.email);
+      const data = await getLoyalty(session.admissionNumber);
       setLoyalty(data);
     }
   };
@@ -39,7 +39,7 @@ const CartPage = () => {
     const order: any = {
       id: generateId(),
       student: session?.name || "Student",
-      studentEmail: session?.email || "guest@freshcanteen.com",
+      admissionNumber: session?.admissionNumber || "guest",
       items: items.map(i => `${i.quantity}x ${i.name}`).join(", "),
       token,
       status: "Pending",
@@ -53,12 +53,12 @@ const CartPage = () => {
       const saved = await saveOrder(order);
 
       // Points: earn for this order
-      await addPointsApi(session?.email || "guest", pointsEarned);
+      await addPointsApi(session?.admissionNumber || "guest", pointsEarned);
 
       // Points: deduct if redeemed
       if (usePoints && loyalty.points >= 100) {
         const toRedeem = Math.min(loyalty.points, 500);
-        await redeemPointsApi(session?.email || "guest", toRedeem);
+        await redeemPointsApi(session?.admissionNumber || "guest", toRedeem);
       }
 
       clearCart();

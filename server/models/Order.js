@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const orderSchema = new mongoose.Schema({
     student: { type: String, required: true },
-    studentEmail: { type: String, required: true },
+    admissionNumber: { type: String, required: true },
     items: { type: String, required: true },
     token: { type: String, required: true },
     status: {

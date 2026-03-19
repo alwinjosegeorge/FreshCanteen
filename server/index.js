@@ -121,11 +121,14 @@ app.delete('/api/announcements/:id', async (req, res) => {
 
 app.post('/api/users/login', async (req, res) => {
     try {
-        const { email, name, role } = req.body;
-        let user = await User.findOne({ email });
+        const { admissionNumber, name, password, role } = req.body;
+        let user = await User.findOne({ admissionNumber });
         if (!user) {
-            user = new User({ email, name, role });
+            // Self-signup for non-imported users if name is provided (or for admin)
+            user = new User({ admissionNumber, name: name || 'Student', password: password || '123456', role: role || 'student' });
             await user.save();
+        } else if (password && user.password !== password) {
+            return res.status(401).json({ error: "Invalid password" });
         }
         res.json(user);
     } catch (err) {
@@ -144,13 +147,13 @@ app.get('/api/users', async (req, res) => {
 
 // ─── Loyalty Routes ──────────────────────────────────────────────────────────
 
-app.get('/api/loyalty/:email', async (req, res) => {
+app.get('/api/loyalty/:admissionNumber', async (req, res) => {
     try {
-        const user = await User.findOne({ email: req.params.email });
+        const user = await User.findOne({ admissionNumber: req.params.admissionNumber });
         if (user) {
-            res.json({ email: user.email, points: user.points, totalEarned: user.totalEarned });
+            res.json({ admissionNumber: user.admissionNumber, points: user.points, totalEarned: user.totalEarned });
         } else {
-            res.json({ email: req.params.email, points: 0, totalEarned: 0 });
+            res.json({ admissionNumber: req.params.admissionNumber, points: 0, totalEarned: 0 });
         }
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -158,11 +161,11 @@ app.get('/api/loyalty/:email', async (req, res) => {
 });
 
 app.post('/api/loyalty/update', async (req, res) => {
-    const { email, pointsToAdd, pointsToRedeem } = req.body;
+    const { admissionNumber, pointsToAdd, pointsToRedeem } = req.body;
     try {
-        let user = await User.findOne({ email });
+        let user = await User.findOne({ admissionNumber });
         if (!user) {
-            user = new User({ email, name: 'Student', points: 0, totalEarned: 0 });
+            user = new User({ admissionNumber, name: 'Student', points: 0, totalEarned: 0 });
         }
 
         if (pointsToAdd) {

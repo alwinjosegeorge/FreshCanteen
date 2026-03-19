@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "https://freshcanteen.onrender.com/api";
+export const API_URL = "https://freshcanteen-render.onrender.com/api";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -20,7 +20,7 @@ export interface Order {
     _id?: string;
     id: string;
     student: string;
-    studentEmail: string;
+    admissionNumber: string;
     items: string;
     token: string;
     status: "Pending" | "Preparing" | "Ready" | "Completed";
@@ -33,7 +33,7 @@ export interface Order {
 
 export interface UserSession {
     _id?: string;
-    email: string;
+    admissionNumber: string;
     name: string;
     role: "student" | "admin";
     id: string;
@@ -50,7 +50,7 @@ export interface Announcement {
 }
 
 export interface LoyaltyData {
-    email: string;
+    admissionNumber: string;
     points: number;
     totalEarned: number;
 }
@@ -178,27 +178,27 @@ export const deleteAnnouncementApi = async (id: string) => {
 
 // ─── Loyalty ─────────────────────────────────────────────────────────────
 
-export const getLoyalty = async (email: string): Promise<LoyaltyData> => {
+export const getLoyalty = async (admissionNumber: string): Promise<LoyaltyData> => {
     try {
-        const res = await axios.get(`${API_URL}/loyalty/${email}`);
+        const res = await axios.get(`${API_URL}/loyalty/${admissionNumber}`);
         return res.data;
     } catch (err) {
         console.error("Error fetching loyalty:", err);
-        return { email, points: 0, totalEarned: 0 };
+        return { admissionNumber, points: 0, totalEarned: 0 };
     }
 };
 
-export const addPointsApi = async (email: string, points: number) => {
+export const addPointsApi = async (admissionNumber: string, points: number) => {
     try {
-        await axios.post(`${API_URL}/loyalty/update`, { email, pointsToAdd: points });
+        await axios.post(`${API_URL}/loyalty/update`, { admissionNumber, pointsToAdd: points });
     } catch (err) {
         console.error("Error adding points:", err);
     }
 };
 
-export const redeemPointsApi = async (email: string, points: number): Promise<boolean> => {
+export const redeemPointsApi = async (admissionNumber: string, points: number): Promise<boolean> => {
     try {
-        await axios.post(`${API_URL}/loyalty/update`, { email, pointsToRedeem: points });
+        await axios.post(`${API_URL}/loyalty/update`, { admissionNumber, pointsToRedeem: points });
         return true;
     } catch (err) {
         console.error("Error redeeming points:", err);

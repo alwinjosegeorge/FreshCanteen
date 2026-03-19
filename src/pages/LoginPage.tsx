@@ -10,45 +10,49 @@ const ADMIN_PASS = "admin123";
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [email, setEmail] = useState("");
+  const [admissionNumber, setAdmissionNumber] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    setTimeout(() => {
+    try {
       if (isAdmin) {
-        if (email === ADMIN_EMAIL && password === ADMIN_PASS) {
-          saveSession({ email, name: "Admin", role: "admin", id: "admin-001" });
+        if (admissionNumber === "admin" && password === "admin123") {
+          const session = { admissionNumber: "admin", name: "Admin", role: "admin" as const, id: "admin-001" };
+          await saveSession(session);
           toast.success("Welcome, Admin!");
           navigate("/admin");
         } else {
-          toast.error("Invalid admin credentials. Use admin@freshcanteen.com / admin123");
+          toast.error("Invalid admin credentials. Use admin / admin123");
         }
       } else {
-        if (email && password) {
-          const name = email.split("@")[0].replace(/\./g, " ").replace(/\b\w/g, c => c.toUpperCase());
-          saveSession({ email, name, role: "student", id: "stu-" + Math.random().toString(36).substr(2, 6) });
-          toast.success(`Welcome, ${name}!`);
+        if (admissionNumber && password) {
+          const session = { admissionNumber, name: "Student", role: "student" as const, id: "stu-" + admissionNumber.toLowerCase() };
+          await saveSession(session);
+          toast.success(`Welcome back!`);
           navigate("/menu");
         } else {
-          toast.error("Please enter your email and password.");
+          toast.error("Please enter your admission number and password.");
         }
       }
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Login failed");
+    } finally {
       setLoading(false);
-    }, 500);
+    }
   };
 
   const fillDemo = () => {
     if (isAdmin) {
-      setEmail(ADMIN_EMAIL);
-      setPassword(ADMIN_PASS);
+      setAdmissionNumber("admin");
+      setPassword("admin123");
     } else {
-      setEmail("student@university.edu");
-      setPassword("student123");
+      setAdmissionNumber("24CS044");
+      setPassword("123456");
     }
   };
 
@@ -86,21 +90,28 @@ const LoginPage = () => {
 
             {isAdmin && (
               <div className="mb-4 p-3 rounded-xl bg-primary/5 border border-primary/20 text-xs text-center text-muted-foreground">
-                Admin: <strong className="text-foreground">admin@freshcanteen.com</strong> / <strong className="text-foreground">admin123</strong>
+                Admin: <strong className="text-foreground">admin</strong> / <strong className="text-foreground">admin123</strong>
                 <button onClick={fillDemo} className="ml-2 text-primary font-bold hover:underline">(fill)</button>
+              </div>
+            )}
+
+            {!isAdmin && (
+              <div className="mb-4 p-3 rounded-xl bg-primary/5 border border-primary/20 text-xs text-center text-muted-foreground">
+                Use your Admission Number (e.g., <strong className="text-foreground">24CS044</strong>)
+                <button onClick={fillDemo} className="ml-2 text-primary font-bold hover:underline">(demo)</button>
               </div>
             )}
 
             <form onSubmit={handleLogin} className="space-y-5">
               <div>
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">Email Address</label>
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">Admission Number</label>
                 <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <input
-                    type="email"
-                    placeholder={isAdmin ? "admin@freshcanteen.com" : "name@university.edu"}
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    type="text"
+                    placeholder={isAdmin ? "admin" : "24CS044"}
+                    value={admissionNumber}
+                    onChange={(e) => setAdmissionNumber(e.target.value)}
                     required
                     className="w-full h-12 pl-11 pr-4 rounded-xl bg-muted border-0 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary outline-none transition"
                   />
@@ -138,8 +149,8 @@ const LoginPage = () => {
             </form>
 
             <div className="mt-6 pt-6 border-t border-border text-center">
-              <span className="text-muted-foreground text-sm">New student? </span>
-              <button onClick={() => { setEmail("newstudent@university.edu"); setPassword("pass123"); setIsAdmin(false); }} className="text-primary font-semibold text-sm hover:underline">Try Demo Account</button>
+              <span className="text-muted-foreground text-sm">Need help? </span>
+              <button className="text-primary font-semibold text-sm hover:underline">Contact Office</button>
             </div>
           </div>
 

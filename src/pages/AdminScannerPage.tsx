@@ -135,7 +135,7 @@ const AdminScannerPage = () => {
               <div>
                 <p className="text-xs text-muted-foreground">Student</p>
                 <p className="font-semibold text-foreground">{scannedOrder.student}</p>
-                <p className="text-[10px] text-muted-foreground">{scannedOrder.studentEmail}</p>
+                <p className="text-[10px] text-muted-foreground">{scannedOrder.admissionNumber}</p>
               </div>
             </div>
 
