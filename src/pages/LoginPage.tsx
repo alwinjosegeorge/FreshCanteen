@@ -23,7 +23,7 @@ const LoginPage = () => {
     try {
       if (isAdmin) {
         if (admissionNumber === "admin" && password === "admin123") {
-          localStorage.setItem("freshcanteen_session", JSON.stringify({
+          localStorage.setItem("fc_session", JSON.stringify({
             admissionNumber: "admin", name: "Admin", role: "admin", id: "admin-001"
           }));
           toast.success("Welcome, Admin!");
@@ -55,8 +55,8 @@ const LoginPage = () => {
           id: user._id || ("stu-" + user.admissionNumber.toLowerCase())
         };
 
-        // Save directly to localStorage
-        localStorage.setItem("freshcanteen_session", JSON.stringify(session));
+        // Save with the correct key used by getSession()
+        localStorage.setItem("fc_session", JSON.stringify(session));
         toast.success(`Welcome, ${user.name}!`);
         setTimeout(() => { window.location.replace("/menu"); }, 700);
       }
