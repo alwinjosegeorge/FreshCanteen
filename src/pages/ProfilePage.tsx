@@ -37,7 +37,7 @@ const StarRating = ({ orderId, current, onRate }: { orderId: string; current?: n
 
 const ProfilePage = () => {
   const navigate = useNavigate();
-  const session = getSession();
+  const [session, setSession] = useState(getSession());
   const [orders, setOrders] = useState<Order[]>([]);
   const [notificationsOn, setNotificationsOn] = useState(true);
   const [loyalty, setLoyalty] = useState({ points: 0, totalEarned: 0, admissionNumber: "" });

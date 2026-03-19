@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, User } from "lucide-react";
-import { saveSession, API_URL } from "@/data/storage";
+import { saveSession, clearSession, API_URL } from "@/data/storage";
 import { toast } from "sonner";
 import axios from "axios";
 
@@ -42,9 +42,10 @@ const LoginPage = () => {
             id: user._id || ("stu-" + user.admissionNumber.toLowerCase())
           };
 
+          await clearSession();
           await saveSession(session);
           toast.success(`Welcome back, ${user.name}!`);
-          navigate("/menu");
+          window.location.href = "/menu";
         } else {
           toast.error("Please enter your admission number and password.");
         }
