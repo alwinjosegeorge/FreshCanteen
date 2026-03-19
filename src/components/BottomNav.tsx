@@ -1,4 +1,4 @@
-import { UtensilsCrossed, ShoppingCart, ClipboardList, User, ScanLine } from "lucide-react";
+import { UtensilsCrossed, ClipboardList, User, ScanLine, Users, Settings, LayoutDashboard, ShoppingCart } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useCart } from "@/context/CartContext";
 
@@ -10,10 +10,11 @@ const studentTabs = [
 ];
 
 const adminTabs = [
-  { icon: UtensilsCrossed, label: "Menu", path: "/admin/menu" },
-  { icon: ShoppingCart, label: "Cart", path: "/admin/orders" },
+  { icon: LayoutDashboard, label: "Stats", path: "/admin" },
   { icon: ClipboardList, label: "Orders", path: "/admin/orders" },
   { icon: ScanLine, label: "Scan", path: "/admin/scanner" },
+  { icon: Users, label: "Users", path: "/admin/users" },
+  { icon: Settings, label: "Config", path: "/admin/settings" },
 ];
 
 export const BottomNav = ({ variant = "student" }: { variant?: "student" | "admin" }) => {

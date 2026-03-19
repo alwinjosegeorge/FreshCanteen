@@ -1,114 +1,194 @@
-import { ClipboardList, DollarSign, ShoppingBag, TrendingUp, Calendar, Download } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ClipboardList, DollarSign, ShoppingBag, TrendingUp, Users, RefreshCw, ArrowRight, Megaphone, Plus, X, Star } from "lucide-react";
 import { AppHeader } from "@/components/AppHeader";
 import { BottomNav } from "@/components/BottomNav";
 import { StatusBadge } from "@/components/StatusBadge";
-import foodAvocadoBowl from "@/assets/food-avocado-bowl.jpg";
-import foodPestoFlatbread from "@/assets/food-pesto-flatbread.jpg";
-import foodChickenCaesar from "@/assets/food-chicken-caesar.jpg";
-import foodFalafel from "@/assets/food-falafel.jpg";
+import { getStoredOrders, Order, getAnnouncements, addAnnouncement, deleteAnnouncement, Announcement } from "@/data/storage";
+import { Link } from "react-router-dom";
+import { toast } from "sonner";
 
-const stats = [
-  { icon: ClipboardList, label: "TOTAL ORDERS", value: "125", change: "+12.5% from yesterday", bg: "bg-accent" },
-  { icon: DollarSign, label: "TODAY'S REVENUE", value: "$1,200", change: "$240 today", bg: "bg-accent" },
-  { icon: ShoppingBag, label: "ACTIVE ORDERS", value: "8", change: "Orders in queue", bg: "bg-accent" },
-];
+const AdminDashboard = () => {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [showAddAnnouncement, setShowAddAnnouncement] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [newBody, setNewBody] = useState("");
+  const [newEmoji, setNewEmoji] = useState("📢");
 
-const recentOrders = [
-  { name: "Quinoa Power Bowl", id: "#9421", date: "Oct 24, 12:30 PM", price: "$12.50", status: "Completed", image: foodAvocadoBowl },
-  { name: "Pesto Garden Pasta", id: "#9422", date: "Oct 24, 12:35 PM", price: "$14.00", status: "Preparing", image: foodPestoFlatbread },
-  { name: "Classic Avocado Toast", id: "#9423", date: "Oct 24, 12:42 PM", price: "$10.50", status: "Pending", image: foodChickenCaesar },
-];
+  const loadData = () => {
+    setOrders(getStoredOrders());
+    setAnnouncements(getAnnouncements());
+  };
 
-const AdminDashboard = () => (
-  <div className="min-h-screen bg-background pb-20">
-    <AppHeader />
-    <div className="px-4 pt-4 max-w-lg mx-auto">
-      <h1 className="text-2xl font-bold text-foreground">Daily Overview</h1>
-      <p className="text-muted-foreground text-sm mb-4">Monitor your canteen's performance in real-time.</p>
+  useEffect(() => {
+    loadData();
+    const interval = setInterval(loadData, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
-      <div className="flex items-center gap-2 mb-6">
-        <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-card border border-border text-sm">
-          <Calendar className="w-4 h-4 text-muted-foreground" />
-          <span className="text-foreground font-medium">Oct 24, 2023</span>
+  const handleAddAnnouncement = () => {
+    if (!newTitle || !newBody) { toast.error("Please fill title and message"); return; }
+    const updated = addAnnouncement({ title: newTitle, body: newBody, emoji: newEmoji, pinned: true });
+    setAnnouncements(updated);
+    setNewTitle(""); setNewBody(""); setNewEmoji("📢");
+    setShowAddAnnouncement(false);
+    toast.success("Announcement posted to students!");
+  };
+
+  const handleDeleteAnnouncement = (id: string) => {
+    const updated = deleteAnnouncement(id);
+    setAnnouncements(updated);
+    toast.success("Announcement removed");
+  };
+
+  const pending = orders.filter(o => o.status === "Pending").length;
+  const preparing = orders.filter(o => o.status === "Preparing").length;
+  const ready = orders.filter(o => o.status === "Ready").length;
+  const completed = orders.filter(o => o.status === "Completed").length;
+  const totalRevenue = orders.reduce((s, o) => s + (o.totalNum || 0), 0);
+  const recentOrders = orders.slice(0, 5);
+
+  const stats = [
+    { icon: ClipboardList, label: "PENDING ORDERS", value: pending.toString(), change: `${preparing} preparing`, bg: "bg-primary/10" },
+    { icon: DollarSign, label: "TOTAL REVENUE", value: `$${totalRevenue.toFixed(2)}`, change: `${orders.length} orders total`, bg: "bg-primary/10" },
+    { icon: ShoppingBag, label: "READY FOR PICKUP", value: ready.toString(), change: `${completed} completed`, bg: "bg-primary/10" },
+    { icon: Users, label: "TOTAL STUDENTS", value: new Set(orders.map(o => o.studentEmail)).size.toString(), change: "Unique customers", bg: "bg-primary/10" },
+  ];
+
+  return (
+    <div className="min-h-screen bg-background pb-20">
+      <AppHeader />
+      <div className="px-4 pt-4 max-w-lg mx-auto">
+        <div className="flex items-center justify-between mb-1">
+          <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Canteen Analytics</h1>
+          <button onClick={loadData} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center btn-press hover:bg-border transition">
+            <RefreshCw className="w-4 h-4 text-muted-foreground" />
+          </button>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-primary-foreground text-sm font-semibold btn-press">
-          <Download className="w-4 h-4" /> Export Report
-        </button>
-      </div>
+        <p className="text-muted-foreground text-sm mb-6">Live performance — updates every 5 seconds</p>
 
-      <div className="space-y-3 mb-6">
-        {stats.map((s, i) => (
-          <div key={s.label} className="bg-card rounded-2xl p-5 card-shadow animate-fade-in" style={{ animationDelay: `${i * 80}ms` }}>
-            <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center mb-3">
-              <s.icon className="w-5 h-5 text-primary" />
+        {/* Stats */}
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          {stats.map((s, i) => (
+            <div key={s.label} className="bg-card rounded-2xl p-4 border border-border card-shadow animate-fade-in" style={{ animationDelay: `${i * 80}ms` }}>
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
+                <s.icon className="w-5 h-5 text-primary" />
+              </div>
+              <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">{s.label}</p>
+              <p className="text-2xl font-extrabold text-foreground">{s.value}</p>
+              <div className="flex items-center gap-1 mt-1">
+                <TrendingUp className="w-3 h-3 text-primary" />
+                <span className="text-[10px] text-primary font-medium">{s.change}</span>
+              </div>
             </div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">{s.label}</p>
-            <p className="text-3xl font-extrabold text-foreground">{s.value}</p>
-            <div className="flex items-center gap-1 mt-1">
-              <TrendingUp className="w-3.5 h-3.5 text-primary" />
-              <span className="text-xs text-primary font-medium">{s.change}</span>
-            </div>
+          ))}
+        </div>
+
+        {/* Order Pipeline */}
+        <div className="bg-card rounded-2xl p-5 card-shadow mb-6 border border-border">
+          <h3 className="font-bold text-foreground mb-4">Order Pipeline</h3>
+          <div className="grid grid-cols-4 gap-2">
+            {[
+              { label: "Pending", count: pending, color: "text-warning" },
+              { label: "Preparing", count: preparing, color: "text-blue-400" },
+              { label: "Ready", count: ready, color: "text-primary" },
+              { label: "Done", count: completed, color: "text-green-500" },
+            ].map(p => (
+              <div key={p.label} className="text-center bg-muted rounded-xl p-3">
+                <p className={`text-2xl font-black ${p.color}`}>{p.count}</p>
+                <p className="text-[9px] font-bold uppercase text-muted-foreground">{p.label}</p>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
 
-      <div className="flex justify-between items-center mb-3">
-        <div>
+        {/* Recent Orders */}
+        <div className="flex justify-between items-center mb-3">
           <h2 className="text-lg font-bold text-foreground">Recent Orders</h2>
-          <p className="text-xs text-muted-foreground">Live feed of canteen transactions</p>
+          <Link to="/admin/orders" className="text-sm font-semibold text-primary flex items-center gap-1 hover:underline">
+            View All <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
-        <button className="text-sm font-semibold text-primary">View All</button>
+
+        {recentOrders.length === 0 ? (
+          <div className="bg-card rounded-2xl p-6 text-center border border-border mb-6">
+            <p className="text-muted-foreground text-sm">No orders yet. Students haven't placed any orders.</p>
+          </div>
+        ) : (
+          <div className="space-y-3 mb-6">
+            {recentOrders.map((o) => (
+              <div key={o.id} className="bg-card rounded-2xl p-4 card-shadow flex items-center gap-3 animate-fade-in border border-border">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 font-black text-primary text-sm">{o.token.replace("#", "")}</div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-foreground text-sm">{o.student}</p>
+                  <p className="text-xs text-muted-foreground truncate">{o.items}</p>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <p className="font-bold text-foreground text-sm">{o.total}</p>
+                  <StatusBadge status={o.status} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      <div className="space-y-3 mb-6">
-        {recentOrders.map((o) => (
-          <div key={o.id} className="bg-card rounded-2xl p-4 card-shadow flex items-center gap-3 animate-fade-in">
-            <img src={o.image} alt={o.name} className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-foreground text-sm">{o.name}</p>
-              <p className="text-xs text-muted-foreground">Order {o.id} • {o.date}</p>
+      {/* Announcements Section */}
+      <div className="px-4 max-w-lg mx-auto mb-20">
+        <div className="flex justify-between items-center mb-3">
+          <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+            <Megaphone className="w-5 h-5 text-primary" /> Announcements
+          </h2>
+          <button
+            onClick={() => setShowAddAnnouncement(!showAddAnnouncement)}
+            className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
+          >
+            <Plus className="w-4 h-4" /> Add
+          </button>
+        </div>
+
+        {showAddAnnouncement && (
+          <div className="bg-card rounded-2xl p-5 border border-primary/30 mb-4 animate-fade-in">
+            <div className="flex gap-2 mb-3">
+              {["📢", "🎉", "🌿", "⚡", "🔥", "🎁"].map(e => (
+                <button key={e} onClick={() => setNewEmoji(e)} className={`text-xl p-1 rounded-lg ${newEmoji === e ? "bg-primary/20 ring-2 ring-primary" : "hover:bg-muted"}`}>{e}</button>
+              ))}
             </div>
-            <div className="text-right flex-shrink-0">
-              <p className="font-bold text-foreground text-sm">{o.price}</p>
-              <StatusBadge status={o.status} />
+            <input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="Title (e.g. 50% off smoothies!)" className="w-full h-11 px-4 rounded-xl bg-muted text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary outline-none text-sm mb-3" />
+            <textarea value={newBody} onChange={e => setNewBody(e.target.value)} placeholder="Message to students..." rows={2} className="w-full px-4 py-3 rounded-xl bg-muted text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary outline-none text-sm mb-3 resize-none" />
+            <div className="flex gap-2">
+              <button onClick={handleAddAnnouncement} className="flex-1 h-10 rounded-xl bg-primary text-primary-foreground font-semibold text-sm btn-press">Post Announcement</button>
+              <button onClick={() => setShowAddAnnouncement(false)} className="h-10 px-4 rounded-xl bg-muted btn-press"><X className="w-4 h-4 text-muted-foreground" /></button>
             </div>
           </div>
-        ))}
-      </div>
+        )}
 
-      <div className="bg-card rounded-2xl p-5 card-shadow mb-4">
-        <h3 className="font-bold text-foreground mb-3">Popular Today</h3>
-        {[
-          { name: "Greek Salad", sold: 42, image: foodFalafel },
-          { name: "Veggie Ramen", sold: 38, image: foodPestoFlatbread },
-        ].map((p) => (
-          <div key={p.name} className="flex items-center gap-3 py-2">
-            <img src={p.image} alt={p.name} className="w-10 h-10 rounded-full object-cover" />
-            <div className="flex-1">
-              <p className="text-xs text-muted-foreground font-medium">{p.sold} Sold</p>
-              <p className="font-semibold text-foreground text-sm">{p.name}</p>
-            </div>
-            <TrendingUp className="w-4 h-4 text-primary" />
+        {announcements.length === 0 ? (
+          <div className="bg-card rounded-xl p-4 text-center border border-border">
+            <p className="text-muted-foreground text-sm">No announcements posted yet.</p>
           </div>
-        ))}
-        <button className="w-full mt-3 h-10 rounded-xl border border-border text-foreground font-medium text-sm btn-press hover:bg-muted transition">Manage Menu Items</button>
+        ) : (
+          <div className="space-y-3">
+            {announcements.map(a => (
+              <div key={a.id} className="bg-card rounded-2xl p-4 border border-border flex items-start gap-3">
+                <span className="text-2xl">{a.emoji}</span>
+                <div className="flex-1">
+                  <p className="font-bold text-foreground text-sm">{a.title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{a.body}</p>
+                  <p className="text-[10px] text-muted-foreground mt-1 opacity-60">{a.createdAt}</p>
+                </div>
+                <button onClick={() => handleDeleteAnnouncement(a.id)} className="text-muted-foreground hover:text-destructive transition flex-shrink-0">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      <div className="bg-card rounded-2xl p-5 card-shadow mb-4">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-lg">🔥</span>
-          <h3 className="font-bold text-foreground">Crowd Density</h3>
-        </div>
-        <p className="text-sm text-muted-foreground mb-3">Current estimated wait time in the canteen area.</p>
-        <p className="text-3xl font-extrabold text-foreground mb-1">12 <span className="text-base font-medium text-muted-foreground">mins wait</span></p>
-        <div className="w-full h-2 rounded-full bg-muted mb-2">
-          <div className="w-1/2 h-2 rounded-full bg-primary" />
-        </div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-warning">Status: Moderate</p>
-      </div>
+      <BottomNav variant="admin" />
     </div>
-    <BottomNav variant="admin" />
-  </div>
-);
+  );
+};
 
 export default AdminDashboard;
