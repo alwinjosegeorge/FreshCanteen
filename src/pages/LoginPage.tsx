@@ -23,36 +23,46 @@ const LoginPage = () => {
     try {
       if (isAdmin) {
         if (admissionNumber === "admin" && password === "admin123") {
-          const session = { admissionNumber: "admin", name: "Admin", role: "admin" as const, id: "admin-001" };
-          await saveSession(session);
+          localStorage.setItem("freshcanteen_session", JSON.stringify({
+            admissionNumber: "admin", name: "Admin", role: "admin", id: "admin-001"
+          }));
           toast.success("Welcome, Admin!");
-          navigate("/admin");
+          setTimeout(() => { window.location.replace("/admin"); }, 500);
         } else {
           toast.error("Invalid admin credentials. Use admin / admin123");
+          setLoading(false);
         }
       } else {
-        if (admissionNumber && password) {
-          const response = await axios.post(`${API_URL}/users/login`, { admissionNumber, password });
-          const user = response.data;
-
-          const session = {
-            admissionNumber: user.admissionNumber,
-            name: user.name,
-            role: user.role,
-            id: user._id || ("stu-" + user.admissionNumber.toLowerCase())
-          };
-
-          await clearSession();
-          await saveSession(session);
-          toast.success(`Welcome back, ${user.name}!`);
-          window.location.href = "/menu";
-        } else {
+        if (!admissionNumber || !password) {
           toast.error("Please enter your admission number and password.");
+          setLoading(false);
+          return;
         }
+
+        const response = await axios.post(`${API_URL}/users/login`, { admissionNumber, password });
+        const user = response.data;
+
+        if (!user || !user.admissionNumber) {
+          toast.error("Invalid response from server. Please try again.");
+          setLoading(false);
+          return;
+        }
+
+        const session = {
+          admissionNumber: user.admissionNumber,
+          name: user.name || admissionNumber,
+          role: user.role || "student",
+          id: user._id || ("stu-" + user.admissionNumber.toLowerCase())
+        };
+
+        // Save directly to localStorage
+        localStorage.setItem("freshcanteen_session", JSON.stringify(session));
+        toast.success(`Welcome, ${user.name}!`);
+        setTimeout(() => { window.location.replace("/menu"); }, 700);
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.error || "Login failed");
-    } finally {
+      const msg = error.response?.data?.error || "Login failed. Please check your credentials.";
+      toast.error(msg);
       setLoading(false);
     }
   };
