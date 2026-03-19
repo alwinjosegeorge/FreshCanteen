@@ -10,29 +10,32 @@ const AdminScannerPage = () => {
   const [scannedOrder, setScannedOrder] = useState<Order | null>(null);
   const [scanning, setScanning] = useState(false);
 
-  const simulateScan = () => {
+  const simulateScan = async () => {
     setScanning(true);
-    setTimeout(() => {
-      // Get first non-completed order
-      const orders = getStoredOrders().filter(o => o.status !== "Completed");
-      if (orders.length > 0) {
-        setScannedOrder(orders[0]);
-        setTokenInput(orders[0].token);
+    try {
+      const orders = await getStoredOrders();
+      const active = orders.filter(o => o.status !== "Completed");
+      if (active.length > 0) {
+        setScannedOrder(active[0]);
+        setTokenInput(active[0].token);
         toast.success("Token detected!");
       } else {
         toast.error("No active orders to scan");
       }
+    } catch (err) {
+      toast.error("Error scanning orders");
+    } finally {
       setScanning(false);
-    }, 1000);
+    }
   };
 
-  const searchByToken = () => {
+  const searchByToken = async () => {
     if (!tokenInput.trim()) {
       toast.error("Enter a token number first");
       return;
     }
     const q = tokenInput.includes("TK") ? tokenInput : `#TK-${tokenInput}`;
-    const orders = getStoredOrders();
+    const orders = await getStoredOrders();
     const found = orders.find(o => o.token.toLowerCase() === q.toLowerCase() || o.token.replace("#TK-", "") === tokenInput.replace("#TK-", ""));
     if (found) {
       setScannedOrder(found);
@@ -43,17 +46,17 @@ const AdminScannerPage = () => {
     }
   };
 
-  const completeOrder = () => {
+  const completeOrder = async () => {
     if (!scannedOrder) return;
-    updateOrderStatus(scannedOrder.id, "Completed");
+    await updateOrderStatus(scannedOrder._id || scannedOrder.id, "Completed");
     toast.success(`✅ Order ${scannedOrder.token} marked as Completed!`);
     setScannedOrder(null);
     setTokenInput("");
   };
 
-  const readyOrder = () => {
+  const readyOrder = async () => {
     if (!scannedOrder) return;
-    updateOrderStatus(scannedOrder.id, "Ready");
+    await updateOrderStatus(scannedOrder._id || scannedOrder.id, "Ready");
     setScannedOrder(prev => prev ? { ...prev, status: "Ready" } : null);
     toast.success(`Order ${scannedOrder.token} is now Ready!`);
   };

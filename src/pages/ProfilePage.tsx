@@ -3,16 +3,17 @@ import { AppHeader } from "@/components/AppHeader";
 import { BottomNav } from "@/components/BottomNav";
 import { User, Settings, CreditCard, HelpCircle, LogOut, ClipboardList, Bell, ChevronRight, Star } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { getSession, clearSession, getStoredOrders, Order, getLoyalty, rateOrder } from "@/data/storage";
+import { getSession, clearSession, getStoredOrders, Order, getLoyalty, rateOrderApi } from "@/data/storage";
 import { toast } from "sonner";
 
-const StarRating = ({ orderId, current }: { orderId: string; current?: number }) => {
+const StarRating = ({ orderId, current, onRate }: { orderId: string; current?: number; onRate: () => void }) => {
   const [hover, setHover] = useState(0);
   const [rated, setRated] = useState(current || 0);
 
-  const handleRate = (stars: number) => {
+  const handleRate = async (stars: number) => {
     setRated(stars);
-    rateOrder(orderId, stars);
+    await rateOrderApi(orderId, stars);
+    onRate();
     toast.success(`⭐ Rated ${stars} stars! Thanks for your feedback!`);
   };
 
@@ -40,12 +41,27 @@ const ProfilePage = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [notificationsOn, setNotificationsOn] = useState(true);
   const [loyalty, setLoyalty] = useState({ points: 0, totalEarned: 0, email: "" });
+  const [loading, setLoading] = useState(true);
+
+  const loadProfileData = async () => {
+    if (!session) return;
+    setLoading(true);
+    try {
+      const allOrders = await getStoredOrders();
+      const myOrders = allOrders.filter(o => o.studentEmail === session.email);
+      const pointsData = await getLoyalty(session.email);
+
+      setOrders(myOrders);
+      setLoyalty(pointsData);
+    } catch (err) {
+      console.error("Profile load error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (session) {
-      setOrders(getStoredOrders().filter(o => o.studentEmail === session.email));
-      setLoyalty(getLoyalty(session.email));
-    }
+    loadProfileData();
   }, []);
 
   const handleLogout = () => {
@@ -95,52 +111,64 @@ const ProfilePage = () => {
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          <div className="bg-card rounded-2xl p-3 card-shadow text-center border border-border">
-            <p className="text-2xl font-black text-primary">{orders.length}</p>
-            <p className="text-[9px] font-bold uppercase text-muted-foreground">Orders</p>
-          </div>
-          <div className="bg-card rounded-2xl p-3 card-shadow text-center border border-border">
-            <p className="text-2xl font-black text-foreground">{completedOrders}</p>
-            <p className="text-[9px] font-bold uppercase text-muted-foreground">Completed</p>
-          </div>
-          <div className="bg-card rounded-2xl p-3 card-shadow text-center border border-border">
-            <p className="text-2xl font-black text-primary">${totalSpent.toFixed(0)}</p>
-            <p className="text-[9px] font-bold uppercase text-muted-foreground">Spent</p>
-          </div>
-        </div>
-
-        {/* Order History */}
-        <h3 className="font-bold text-foreground mb-4 px-1 flex items-center gap-2">
-          <ClipboardList className="w-5 h-5 text-primary" /> Order History
-        </h3>
-        {orders.length === 0 ? (
-          <div className="bg-card rounded-2xl p-6 text-center border border-border mb-6">
-            <p className="text-muted-foreground text-sm">No orders yet. <Link to="/menu" className="text-primary font-semibold hover:underline">Browse menu →</Link></p>
+        {/* Loading Stats */}
+        {loading ? (
+          <div className="flex justify-center py-10">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
         ) : (
-          <div className="space-y-3 mb-6">
-            {orders.slice(0, 5).map((order) => (
-              <div key={order.id} className="bg-card rounded-2xl p-4 card-shadow border border-border">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <p className="font-bold text-foreground text-sm">{order.token}</p>
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">{order.date}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[170px]">{order.items}</p>
-                    {/* Star Rating for completed orders */}
-                    {order.status === "Completed" && (
-                      <StarRating orderId={order.id} current={order.rating} />
-                    )}
-                  </div>
-                  <div className="text-right">
-                    <p className="font-extrabold text-primary text-sm">{order.total}</p>
-                    <span className={`text-[9px] font-black uppercase tracking-widest ${order.status === "Completed" ? "text-green-500" : order.status === "Ready" ? "text-primary" : "text-warning"}`}>{order.status}</span>
-                  </div>
-                </div>
+          <>
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-3 mb-6">
+              <div className="bg-card rounded-2xl p-3 card-shadow text-center border border-border">
+                <p className="text-2xl font-black text-primary">{orders.length}</p>
+                <p className="text-[9px] font-bold uppercase text-muted-foreground">Orders</p>
               </div>
-            ))}
-          </div>
+              <div className="bg-card rounded-2xl p-3 card-shadow text-center border border-border">
+                <p className="text-2xl font-black text-foreground">{completedOrders}</p>
+                <p className="text-[9px] font-bold uppercase text-muted-foreground">Completed</p>
+              </div>
+              <div className="bg-card rounded-2xl p-3 card-shadow text-center border border-border">
+                <p className="text-2xl font-black text-primary">${totalSpent.toFixed(0)}</p>
+                <p className="text-[9px] font-bold uppercase text-muted-foreground">Spent</p>
+              </div>
+            </div>
+
+            {/* Order History */}
+            <h3 className="font-bold text-foreground mb-4 px-1 flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <ClipboardList className="w-4 h-4 text-primary" />
+              </div>
+              Order History
+            </h3>
+            {orders.length === 0 ? (
+              <div className="bg-card rounded-2xl p-6 text-center border border-border mb-6">
+                <p className="text-muted-foreground text-sm">No orders yet. <Link to="/menu" className="text-primary font-semibold hover:underline">Browse menu →</Link></p>
+              </div>
+            ) : (
+              <div className="space-y-3 mb-6">
+                {orders.slice(0, 5).map((order) => (
+                  <div key={order._id || order.id} className="bg-card rounded-2xl p-4 card-shadow border border-border">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <p className="font-bold text-foreground text-sm">{order.token}</p>
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">{order.date}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[170px]">{order.items}</p>
+                        {/* Star Rating for completed orders */}
+                        {order.status === "Completed" && (
+                          <StarRating orderId={order._id || order.id} current={order.rating} onRate={loadProfileData} />
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <p className="font-extrabold text-primary text-sm">{order.total}</p>
+                        <span className={`text-[9px] font-black uppercase tracking-widest ${order.status === "Completed" ? "text-green-500" : order.status === "Ready" ? "text-primary" : "text-warning"}`}>{order.status}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
         )}
 
         {/* Settings */}

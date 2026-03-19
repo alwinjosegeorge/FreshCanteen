@@ -16,17 +16,34 @@ const OrderStatusPage = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [waitTime, setWaitTime] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-  const loadOrders = () => {
+  const loadOrders = async () => {
     const session = getSession();
     if (!session) return;
-    const all = getStoredOrders().filter(o => o.studentEmail === session.email);
-    setOrders(all);
-    setWaitTime(estimateWait());
-    if (all.length > 0 && !selectedOrder) setSelectedOrder(all[0]);
-    else if (selectedOrder) {
-      const updated = all.find(o => o.id === selectedOrder.id);
-      if (updated) setSelectedOrder(updated);
+
+    if (orders.length === 0) setLoading(true);
+
+    try {
+      const allOrders = await getStoredOrders();
+      const myOrders = allOrders.filter(o => o.studentEmail === session.email);
+      const wait = await estimateWait();
+
+      setOrders(myOrders);
+      setWaitTime(wait);
+
+      if (myOrders.length > 0) {
+        if (!selectedOrder) {
+          setSelectedOrder(myOrders[0]);
+        } else {
+          const updated = myOrders.find(o => (o._id || o.id) === (selectedOrder._id || selectedOrder.id));
+          if (updated) setSelectedOrder(updated);
+        }
+      }
+    } catch (err) {
+      console.error("Error loading order status:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -34,7 +51,7 @@ const OrderStatusPage = () => {
     loadOrders();
     const interval = setInterval(loadOrders, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [selectedOrder?._id, selectedOrder?.id]);
 
   const getStepStatus = (stepLabel: string) => {
     if (!selectedOrder) return { done: false, active: false };
@@ -44,7 +61,20 @@ const OrderStatusPage = () => {
     return { done: stepIdx < currentIdx, active: stepIdx === currentIdx };
   };
 
-  if (orders.length === 0) {
+  if (loading && orders.length === 0) {
+    return (
+      <div className="min-h-screen bg-background pb-20">
+        <AppHeader />
+        <div className="flex flex-col items-center justify-center py-24 px-4 text-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-4" />
+          <p className="text-sm font-medium text-muted-foreground">Checking your orders...</p>
+        </div>
+        <BottomNav />
+      </div>
+    );
+  }
+
+  if (!loading && orders.length === 0) {
     return (
       <div className="min-h-screen bg-background pb-20">
         <AppHeader />
@@ -66,11 +96,11 @@ const OrderStatusPage = () => {
         <div className="flex items-center justify-between mb-1">
           <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Track Your Meal</h1>
           <button onClick={loadOrders} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center btn-press hover:bg-border transition">
-            <RefreshCw className="w-4 h-4 text-muted-foreground" />
+            <RefreshCw className={`w-4 h-4 text-muted-foreground ${loading && orders.length > 0 ? "animate-spin" : ""}`} />
           </button>
         </div>
         <div className="flex items-center gap-3 mb-4">
-          <p className="text-muted-foreground text-sm">Auto-refreshes every 3 seconds</p>
+          <p className="text-muted-foreground text-sm">Real-time status from MongoDB</p>
           {waitTime > 0 && (
             <div className="flex items-center gap-1 text-xs font-semibold text-muted-foreground bg-card border border-border rounded-full px-3 py-1">
               <Clock className="w-3 h-3" /> ~{waitTime} min wait
@@ -83,9 +113,9 @@ const OrderStatusPage = () => {
           <div className="flex gap-2 mb-4 overflow-x-auto no-scrollbar">
             {orders.map(o => (
               <button
-                key={o.id}
+                key={o._id || o.id}
                 onClick={() => setSelectedOrder(o)}
-                className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap btn-press transition-colors ${selectedOrder?.id === o.id ? "bg-primary text-primary-foreground" : "bg-card border border-border text-foreground"}`}
+                className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap btn-press transition-colors ${(selectedOrder?._id || selectedOrder?.id) === (o._id || o.id) ? "bg-primary text-primary-foreground" : "bg-card border border-border text-foreground"}`}
               >
                 {o.token}
               </button>

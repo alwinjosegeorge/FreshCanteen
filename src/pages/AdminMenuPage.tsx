@@ -1,8 +1,8 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Search, Plus, X, Check, Upload, ImagePlus } from "lucide-react";
 import { AppHeader } from "@/components/AppHeader";
 import { BottomNav } from "@/components/BottomNav";
-import { getStoredMenu, updateStoredMenu, MenuItem } from "@/data/storage";
+import { getStoredMenu, updateStoredMenu, MenuItem, deleteMenuItem } from "@/data/storage";
 import { toast } from "sonner";
 
 const CATEGORIES = ["All Items", "Meals", "Snacks", "Drinks"] as const;
@@ -11,12 +11,24 @@ const FALLBACK = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=20
 const AdminMenuPage = () => {
   const [activeCategory, setActiveCategory] = useState("All Items");
   const [search, setSearch] = useState("");
-  const [menu, setMenu] = useState<MenuItem[]>(getStoredMenu());
+  const [menu, setMenu] = useState<MenuItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [newItem, setNewItem] = useState({ name: "", price: "", category: "Meals", calories: "", tags: "" });
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const loadMenu = async () => {
+    setLoading(true);
+    const data = await getStoredMenu();
+    setMenu(data);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadMenu();
+  }, []);
 
   // ── Image handling ──────────────────────────────────────────────────────────
 
@@ -51,17 +63,14 @@ const AdminMenuPage = () => {
 
   // ── CRUD ────────────────────────────────────────────────────────────────────
 
-  const toggleAvailability = (id: string) => {
-    const newMenu = menu.map(item =>
-      item.id === id ? { ...item, available: !item.available } : item
-    );
-    setMenu(newMenu);
-    updateStoredMenu(newMenu);
-    const item = menu.find(i => i.id === id);
-    toast.success(`${item?.name} is now ${item?.available ? "Out of Stock" : "Available"}`);
+  const toggleAvailability = async (item: MenuItem) => {
+    const updatedItem = { ...item, available: !item.available };
+    await updateStoredMenu(updatedItem);
+    loadMenu();
+    toast.success(`${item.name} is now ${!item.available ? "Available" : "Out of Stock"}`);
   };
 
-  const addItem = () => {
+  const addItem = async () => {
     if (!newItem.name || !newItem.price) {
       toast.error("Please fill in at least the name and price.");
       return;
@@ -70,24 +79,23 @@ const AdminMenuPage = () => {
       ? newItem.tags.split(",").map(t => t.trim().toUpperCase()).filter(Boolean)
       : [newItem.category.toUpperCase()];
 
-    const item: MenuItem = {
-      id: `custom-${Date.now()}`,
+    const item: Partial<MenuItem> = {
       name: newItem.name,
       price: parseFloat(newItem.price) || 0,
       image: imagePreview || `https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600`,
-      category: newItem.category as "Meals" | "Snacks" | "Drinks",
+      category: newItem.category,
       tags: tagList,
       calories: parseInt(newItem.calories) || 200,
       available: true,
+      id: `custom-${Date.now()}` // Keeping for legacy if needed
     };
 
-    const newMenu = [item, ...menu];
-    setMenu(newMenu);
-    updateStoredMenu(newMenu);
+    await updateStoredMenu(item);
     setShowAdd(false);
     setNewItem({ name: "", price: "", category: "Meals", calories: "", tags: "" });
     setImagePreview(null);
-    toast.success(`🎉 "${item.name}" added to menu and visible to students!`);
+    loadMenu();
+    toast.success(`🎉 "${item.name}" added to MongoDB!`);
   };
 
   const resetForm = () => {
@@ -96,12 +104,12 @@ const AdminMenuPage = () => {
     setImagePreview(null);
   };
 
-  const deleteItem = (id: string) => {
-    const item = menu.find(i => i.id === id);
-    const newMenu = menu.filter(i => i.id !== id);
-    setMenu(newMenu);
-    updateStoredMenu(newMenu);
-    toast.success(`"${item?.name}" removed from menu`);
+  const handleDelete = async (id: string, name: string) => {
+    if (window.confirm(`Delete ${name}?`)) {
+      await deleteMenuItem(id);
+      loadMenu();
+      toast.success(`"${name}" removed from database`);
+    }
   };
 
   const filtered = menu.filter(item => {
@@ -115,7 +123,7 @@ const AdminMenuPage = () => {
       <AppHeader />
       <div className="px-4 pt-4 max-w-lg mx-auto">
         <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Menu Manager</h1>
-        <p className="text-muted-foreground text-sm mb-4">Add, remove, and manage food items.</p>
+        <p className="text-muted-foreground text-sm mb-4">Managing live MongoDB data.</p>
 
         {/* Stats */}
         <div className="grid grid-cols-2 gap-3 mb-6">
@@ -181,11 +189,6 @@ const AdminMenuPage = () => {
                 onChange={handleFileChange}
                 className="hidden"
               />
-              {!imagePreview && (
-                <p className="text-[10px] text-muted-foreground text-center mt-2 opacity-60">
-                  If no image is uploaded, a placeholder will be used
-                </p>
-              )}
             </div>
 
             {/* Item Details */}
@@ -291,38 +294,51 @@ const AdminMenuPage = () => {
           ))}
         </div>
 
+        {/* Loading State */}
+        {loading && (
+          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-4" />
+            <p className="text-sm font-medium">Syncing with MongoDB...</p>
+          </div>
+        )}
+
         {/* Items */}
-        <div className="space-y-3 mb-6">
-          {filtered.map((item) => (
-            <div key={item.id} className="bg-card rounded-2xl p-4 border border-border card-shadow animate-fade-in">
-              <div className="flex items-start gap-4">
-                <img
-                  src={item.image}
-                  alt={item.name}
-                  className="w-16 h-16 rounded-xl object-cover flex-shrink-0"
-                  onError={e => { (e.target as HTMLImageElement).src = FALLBACK; }}
-                />
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-foreground text-sm tracking-tight">{item.name}</h3>
-                  <p className="text-[10px] font-bold text-primary uppercase tracking-wider">${Number(item.price).toFixed(2)} · {item.calories} kcal</p>
-                  <div className="flex gap-1.5 flex-wrap mt-1">
-                    {item.tags.map((t) => <span key={t} className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-md bg-muted text-muted-foreground">{t}</span>)}
+        {!loading && (
+          <div className="space-y-3 mb-6">
+            {filtered.map((item) => (
+              <div key={item._id || item.id} className="bg-card rounded-2xl p-4 border border-border card-shadow animate-fade-in">
+                <div className="flex items-start gap-4">
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    className="w-16 h-16 rounded-xl object-cover flex-shrink-0"
+                    onError={e => { (e.target as HTMLImageElement).src = FALLBACK; }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-foreground text-sm tracking-tight">{item.name}</h3>
+                    <p className="text-[10px] font-bold text-primary uppercase tracking-wider">${Number(item.price).toFixed(2)} · {item.calories} kcal</p>
+                    <div className="flex gap-1.5 flex-wrap mt-1">
+                      {item.tags.map((t) => <span key={t} className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-md bg-muted text-muted-foreground">{t}</span>)}
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <button
+                      onClick={() => toggleAvailability(item)}
+                      className={`w-12 h-6 rounded-full transition-all relative flex-shrink-0 ${item.available ? "bg-primary" : "bg-muted"}`}
+                    >
+                      <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${item.available ? "translate-x-6" : "translate-x-1"}`} />
+                    </button>
+                    <button onClick={() => handleDelete(item._id!, item.name)} className="text-[10px] font-bold text-destructive hover:underline uppercase">Remove</button>
                   </div>
                 </div>
-                <div className="flex flex-col items-end gap-2">
-                  <button
-                    onClick={() => toggleAvailability(item.id)}
-                    className={`w-12 h-6 rounded-full transition-all relative flex-shrink-0 ${item.available ? "bg-primary" : "bg-muted"}`}
-                  >
-                    <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${item.available ? "translate-x-6" : "translate-x-1"}`} />
-                  </button>
-                  <button onClick={() => deleteItem(item.id)} className="text-[10px] font-bold text-destructive hover:underline uppercase">Remove</button>
-                </div>
+                {!item.available && <p className="text-[10px] font-bold text-destructive uppercase tracking-widest mt-2">⚠ Out of Stock — Hidden from students</p>}
               </div>
-              {!item.available && <p className="text-[10px] font-bold text-destructive uppercase tracking-widest mt-2">⚠ Out of Stock — Hidden from students</p>}
-            </div>
-          ))}
-        </div>
+            ))}
+            {filtered.length === 0 && (
+              <div className="text-center py-10 text-muted-foreground text-sm">No items found matching your search.</div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* FAB */}

@@ -76,11 +76,30 @@ const MenuPage = () => {
   const [dismissed, setDismissed] = useState<string[]>([]);
   const [waitTime, setWaitTime] = useState(4);
   const { addItem, totalItems } = useCart();
-  const [menuItems] = useState<MenuItem[]>(getStoredMenu());
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [menu, announce, wait] = await Promise.all([
+        getStoredMenu(),
+        getAnnouncements(),
+        estimateWait()
+      ]);
+      setMenuItems(menu);
+      setAnnouncements(announce);
+      setWaitTime(wait);
+    } catch (err) {
+      console.error("Error loading menu data:", err);
+      toast.error("Failed to load menu. Please check your connection.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    setAnnouncements(getAnnouncements());
-    setWaitTime(estimateWait());
+    loadData();
   }, []);
 
   const filtered = menuItems.filter((item) => {
@@ -94,110 +113,119 @@ const MenuPage = () => {
     toast.success(`✅ ${item.name} added! +${Math.round(item.price * 10)} pts`);
   };
 
-  const visibleAnnouncements = announcements.filter(a => a.pinned && !dismissed.includes(a.id));
+  const visibleAnnouncements = announcements.filter(a => a.pinned && !dismissed.includes(a.id || (a as any)._id));
 
   return (
     <div className="min-h-screen bg-background pb-20">
       {selectedItem && <ItemModal item={selectedItem} onClose={() => setSelectedItem(null)} onAdd={() => handleAdd(selectedItem)} />}
       <AppHeader />
       <div className="px-4 pt-4 max-w-lg mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-1">
-          <h1 className="text-2xl font-extrabold text-foreground tracking-tight">🌿 FreshCanteen</h1>
-          <div className="flex items-center gap-3">
-            {waitTime > 0 && (
-              <div className="flex items-center gap-1 text-xs font-bold text-muted-foreground bg-card border border-border rounded-full px-3 py-1">
-                <Clock className="w-3 h-3" /> ~{waitTime} min
-              </div>
-            )}
-            {totalItems > 0 && (
-              <div className="flex items-center gap-1 text-primary font-bold text-sm">
-                <ShoppingCart className="w-4 h-4" /> {totalItems}
-              </div>
-            )}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-4" />
+            <p className="text-sm font-medium">Fetching fresh picks...</p>
           </div>
-        </div>
-        <p className="text-muted-foreground text-sm mb-4">Today's fresh picks. Tap item for details.</p>
-
-        {/* Announcements */}
-        {visibleAnnouncements.map(a => (
-          <AnnouncementBanner key={a.id} a={a} onDismiss={() => setDismissed(d => [...d, a.id])} />
-        ))}
-
-        {/* Search */}
-        <div className="relative mb-4">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search meals, drinks, snacks..."
-            className="w-full h-11 pl-11 pr-4 rounded-xl bg-card border border-border text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary outline-none transition text-sm"
-          />
-        </div>
-
-        {/* Category Filters */}
-        <div className="flex gap-2 mb-6 overflow-x-auto no-scrollbar">
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
-              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap btn-press transition-colors ${activeCategory === cat ? "bg-primary text-primary-foreground" : "bg-card border border-border text-foreground hover:bg-muted"}`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-
-        {/* Menu Grid */}
-        <div className="space-y-4">
-          {filtered.map((item, idx) => (
-            <div
-              key={item.id}
-              className="bg-card rounded-2xl overflow-hidden card-shadow animate-fade-in cursor-pointer"
-              style={{ animationDelay: `${idx * 50}ms` }}
-              onClick={() => setSelectedItem(item)}
-            >
-              <div className="relative">
-                <img src={item.image} alt={item.name} className="w-full h-48 object-cover" />
-                <div className="absolute top-3 right-3 bg-card/90 backdrop-blur-sm rounded-full px-2 py-1 flex items-center gap-1">
-                  <Star className="w-3 h-3 text-warning fill-warning" />
-                  <span className="text-xs font-semibold">4.{5 + (parseInt(item.id) % 4)}</span>
-                </div>
-                <div className="absolute top-3 left-3">
-                  <span className="text-[10px] font-bold uppercase px-2 py-1 rounded-full bg-black/50 text-white backdrop-blur-sm">{item.category}</span>
-                </div>
-                <div className="absolute bottom-3 right-3 bg-primary text-primary-foreground text-[10px] font-bold uppercase px-2 py-0.5 rounded-full">
-                  +{Math.round(item.price * 10)} pts
-                </div>
-              </div>
-              <div className="p-4">
-                <div className="flex items-center justify-between mb-1">
-                  <h3 className="font-semibold text-foreground">{item.name}</h3>
-                  <span className="font-bold text-primary">${Number(item.price).toFixed(2)}</span>
-                </div>
-                <div className="flex items-center gap-2 mb-3 flex-wrap">
-                  {item.tags.map((tag) => (
-                    <span key={tag} className="text-[10px] uppercase font-semibold tracking-wider px-2 py-0.5 rounded-full bg-accent text-accent-foreground">{tag}</span>
-                  ))}
-                  <span className="text-[10px] uppercase font-semibold tracking-wider px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{item.calories} KCAL</span>
-                </div>
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleAdd(item); }}
-                  className="w-full h-11 rounded-xl bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center gap-2 btn-press hover:opacity-90 transition shadow-sm"
-                >
-                  Add to Cart
-                </button>
+        ) : (
+          <>
+            {/* Header */}
+            <div className="flex items-center justify-between mb-1">
+              <h1 className="text-2xl font-extrabold text-foreground tracking-tight">🌿 FreshCanteen</h1>
+              <div className="flex items-center gap-3">
+                {waitTime > 0 && (
+                  <div className="flex items-center gap-1 text-xs font-bold text-muted-foreground bg-card border border-border rounded-full px-3 py-1">
+                    <Clock className="w-3 h-3" /> ~{waitTime} min
+                  </div>
+                )}
+                {totalItems > 0 && (
+                  <div className="flex items-center gap-1 text-primary font-bold text-sm">
+                    <ShoppingCart className="w-4 h-4" /> {totalItems}
+                  </div>
+                )}
               </div>
             </div>
-          ))}
-        </div>
+            <p className="text-muted-foreground text-sm mb-4">Today's fresh picks. Tap item for details.</p>
 
-        {filtered.length === 0 && (
-          <div className="text-center py-16">
-            <p className="text-4xl mb-3">🍽️</p>
-            <p className="text-muted-foreground font-medium">No items found</p>
-            <button onClick={() => { setSearch(""); setActiveCategory("All"); }} className="mt-4 text-primary font-semibold text-sm hover:underline">Clear Filters</button>
-          </div>
+            {/* Announcements */}
+            {visibleAnnouncements.map(a => (
+              <AnnouncementBanner key={a.id || (a as any)._id} a={a} onDismiss={() => setDismissed(d => [...d, a.id || (a as any)._id])} />
+            ))}
+
+            {/* Search */}
+            <div className="relative mb-4">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search meals, drinks, snacks..."
+                className="w-full h-11 pl-11 pr-4 rounded-xl bg-card border border-border text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary outline-none transition text-sm"
+              />
+            </div>
+
+            {/* Category Filters */}
+            <div className="flex gap-2 mb-6 overflow-x-auto no-scrollbar">
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap btn-press transition-colors ${activeCategory === cat ? "bg-primary text-primary-foreground" : "bg-card border border-border text-foreground hover:bg-muted"}`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+
+            {/* Menu Grid */}
+            <div className="space-y-4">
+              {filtered.map((item, idx) => (
+                <div
+                  key={item.id || (item as any)._id}
+                  className="bg-card rounded-2xl overflow-hidden card-shadow animate-fade-in cursor-pointer"
+                  style={{ animationDelay: `${idx * 50}ms` }}
+                  onClick={() => setSelectedItem(item)}
+                >
+                  <div className="relative">
+                    <img src={item.image} alt={item.name} className="w-full h-48 object-cover" />
+                    <div className="absolute top-3 right-3 bg-card/90 backdrop-blur-sm rounded-full px-2 py-1 flex items-center gap-1">
+                      <Star className="w-3 h-3 text-warning fill-warning" />
+                      <span className="text-xs font-semibold">4.{5 + (item.name.length % 4)}</span>
+                    </div>
+                    <div className="absolute top-3 left-3">
+                      <span className="text-[10px] font-bold uppercase px-2 py-1 rounded-full bg-black/50 text-white backdrop-blur-sm">{item.category}</span>
+                    </div>
+                    <div className="absolute bottom-3 right-3 bg-primary text-primary-foreground text-[10px] font-bold uppercase px-2 py-0.5 rounded-full">
+                      +{Math.round(item.price * 10)} pts
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="font-semibold text-foreground">{item.name}</h3>
+                      <span className="font-bold text-primary">${Number(item.price).toFixed(2)}</span>
+                    </div>
+                    <div className="flex items-center gap-2 mb-3 flex-wrap">
+                      {item.tags.map((tag) => (
+                        <span key={tag} className="text-[10px] uppercase font-semibold tracking-wider px-2 py-0.5 rounded-full bg-accent text-accent-foreground">{tag}</span>
+                      ))}
+                      <span className="text-[10px] uppercase font-semibold tracking-wider px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{item.calories} KCAL</span>
+                    </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleAdd(item); }}
+                      className="w-full h-11 rounded-xl bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center gap-2 btn-press hover:opacity-90 transition shadow-sm"
+                    >
+                      Add to Cart
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {filtered.length === 0 && (
+              <div className="text-center py-16">
+                <p className="text-4xl mb-3">🍽️</p>
+                <p className="text-muted-foreground font-medium">No items found</p>
+                <button onClick={() => { setSearch(""); setActiveCategory("All"); }} className="mt-4 text-primary font-semibold text-sm hover:underline">Clear Filters</button>
+              </div>
+            )}
+          </>
         )}
       </div>
       <BottomNav />

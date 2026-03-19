@@ -1,9 +1,12 @@
-import { menuItems as rawInitialMenu } from "./menuData";
+import axios from "axios";
+
+const API_URL = "http://localhost:5000/api";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface MenuItem {
-    id: string;
+    _id?: string;
+    id: string; // Legacy ID or separate field
     name: string;
     price: number;
     image: string;
@@ -14,6 +17,7 @@ export interface MenuItem {
 }
 
 export interface Order {
+    _id?: string;
     id: string;
     student: string;
     studentEmail: string;
@@ -28,6 +32,7 @@ export interface Order {
 }
 
 export interface UserSession {
+    _id?: string;
     email: string;
     name: string;
     role: "student" | "admin";
@@ -35,6 +40,7 @@ export interface UserSession {
 }
 
 export interface Announcement {
+    _id?: string;
     id: string;
     title: string;
     body: string;
@@ -49,84 +55,87 @@ export interface LoyaltyData {
     totalEarned: number;
 }
 
-// ─── Keys ────────────────────────────────────────────────────────────────────
-
-const MENU_KEY = "fc_menu";
-const ORDERS_KEY = "fc_orders";
-const SESSION_KEY = "fc_session";
-const ANNOUNCEMENTS_KEY = "fc_announcements";
-const LOYALTY_KEY = "fc_loyalty";
-
 // ─── Menu ────────────────────────────────────────────────────────────────────
 
-export const getStoredMenu = (): MenuItem[] => {
-    const stored = localStorage.getItem(MENU_KEY);
-    if (!stored) {
-        const typed: MenuItem[] = (rawInitialMenu as any[]).map(item => ({
-            ...item,
-            price: typeof item.price === "string" ? parseFloat(item.price) : item.price,
-            calories: typeof item.calories === "string" ? parseInt(item.calories) : item.calories,
-            available: item.available ?? true,
-        }));
-        localStorage.setItem(MENU_KEY, JSON.stringify(typed));
-        return typed;
+export const getStoredMenu = async (): Promise<MenuItem[]> => {
+    try {
+        const res = await axios.get(`${API_URL}/menu`);
+        return res.data;
+    } catch (err) {
+        console.error("Error fetching menu:", err);
+        return [];
     }
-    return JSON.parse(stored);
 };
 
-export const updateStoredMenu = (menu: MenuItem[]) => {
-    localStorage.setItem(MENU_KEY, JSON.stringify(menu));
+export const updateStoredMenu = async (item: Partial<MenuItem>) => {
+    try {
+        if (item._id) {
+            await axios.patch(`${API_URL}/menu/${item._id}`, item);
+        } else {
+            await axios.post(`${API_URL}/menu`, item);
+        }
+    } catch (err) {
+        console.error("Error updating menu:", err);
+    }
 };
 
-export const resetMenu = () => {
-    localStorage.removeItem(MENU_KEY);
-    return getStoredMenu();
+export const deleteMenuItem = async (id: string) => {
+    try {
+        await axios.delete(`${API_URL}/menu/${id}`);
+    } catch (err) {
+        console.error("Error deleting menu item:", err);
+    }
 };
 
 // ─── Orders ──────────────────────────────────────────────────────────────────
 
-export const getStoredOrders = (): Order[] => {
-    const stored = localStorage.getItem(ORDERS_KEY);
-    return stored ? JSON.parse(stored) : [];
-};
-
-export const saveOrder = (order: Order) => {
-    const orders = getStoredOrders();
-    orders.unshift(order);
-    localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
-};
-
-export const updateOrderStatus = (orderId: string, status: Order["status"]) => {
-    const orders = getStoredOrders();
-    const i = orders.findIndex(o => o.id === orderId);
-    if (i !== -1) {
-        orders[i].status = status;
-        localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+export const getStoredOrders = async (): Promise<Order[]> => {
+    try {
+        const res = await axios.get(`${API_URL}/orders`);
+        return res.data;
+    } catch (err) {
+        console.error("Error fetching orders:", err);
+        return [];
     }
 };
 
-export const rateOrder = (orderId: string, rating: number) => {
-    const orders = getStoredOrders();
-    const i = orders.findIndex(o => o.id === orderId);
-    if (i !== -1) {
-        orders[i].rating = rating;
-        localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+export const saveOrder = async (order: Order) => {
+    try {
+        const res = await axios.post(`${API_URL}/orders`, order);
+        return res.data;
+    } catch (err) {
+        console.error("Error saving order:", err);
+        throw err;
     }
 };
 
-export const getOrdersByStudent = (email: string): Order[] => {
-    return getStoredOrders().filter(o => o.studentEmail === email);
+export const updateOrderStatus = async (orderId: string, status: Order["status"]) => {
+    try {
+        await axios.patch(`${API_URL}/orders/${orderId}`, { status });
+    } catch (err) {
+        console.error("Error updating order status:", err);
+    }
 };
 
-export const getLatestStudentOrder = (email: string): Order | null => {
-    const orders = getOrdersByStudent(email).filter(o => o.status !== "Completed");
-    return orders.length > 0 ? orders[0] : null;
+export const rateOrderApi = async (orderId: string, rating: number) => {
+    try {
+        await axios.patch(`${API_URL}/orders/${orderId}`, { rating });
+    } catch (err) {
+        console.error("Error rating order:", err);
+    }
 };
 
 // ─── Session ─────────────────────────────────────────────────────────────────
 
-export const saveSession = (session: UserSession) => {
-    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+const SESSION_KEY = "fc_session";
+
+export const saveSession = async (session: UserSession) => {
+    try {
+        await axios.post(`${API_URL}/users/login`, session);
+        localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    } catch (err) {
+        console.error("Error saving session:", err);
+    }
 };
 
 export const getSession = (): UserSession | null => {
@@ -140,67 +149,62 @@ export const clearSession = () => {
 
 // ─── Announcements ────────────────────────────────────────────────────────────
 
-const defaultAnnouncements: Announcement[] = [
-    { id: "1", title: "🌿 Welcome to FreshCanteen!", body: "Fresh meals, smart ordering. Place your first order and earn 50 bonus points!", emoji: "🎉", createdAt: new Date().toLocaleString(), pinned: true },
-];
-
-export const getAnnouncements = (): Announcement[] => {
-    const stored = localStorage.getItem(ANNOUNCEMENTS_KEY);
-    if (!stored) {
-        localStorage.setItem(ANNOUNCEMENTS_KEY, JSON.stringify(defaultAnnouncements));
-        return defaultAnnouncements;
+export const getAnnouncements = async (): Promise<Announcement[]> => {
+    try {
+        const res = await axios.get(`${API_URL}/announcements`);
+        return res.data;
+    } catch (err) {
+        console.error("Error fetching announcements:", err);
+        return [];
     }
-    return JSON.parse(stored);
 };
 
-export const addAnnouncement = (a: Omit<Announcement, "id" | "createdAt">) => {
-    const existing = getAnnouncements();
-    const newA: Announcement = { ...a, id: generateId(), createdAt: new Date().toLocaleString() };
-    const updated = [newA, ...existing];
-    localStorage.setItem(ANNOUNCEMENTS_KEY, JSON.stringify(updated));
-    return updated;
-};
-
-export const deleteAnnouncement = (id: string) => {
-    const updated = getAnnouncements().filter(a => a.id !== id);
-    localStorage.setItem(ANNOUNCEMENTS_KEY, JSON.stringify(updated));
-    return updated;
-};
-
-// ─── Loyalty Points ───────────────────────────────────────────────────────────
-
-export const getLoyalty = (email: string): LoyaltyData => {
-    const stored = localStorage.getItem(LOYALTY_KEY);
-    const all: LoyaltyData[] = stored ? JSON.parse(stored) : [];
-    return all.find(l => l.email === email) ?? { email, points: 0, totalEarned: 0 };
-};
-
-export const addPoints = (email: string, points: number) => {
-    const stored = localStorage.getItem(LOYALTY_KEY);
-    const all: LoyaltyData[] = stored ? JSON.parse(stored) : [];
-    const idx = all.findIndex(l => l.email === email);
-    if (idx !== -1) {
-        all[idx].points += points;
-        all[idx].totalEarned += points;
-    } else {
-        all.push({ email, points, totalEarned: points });
+export const addAnnouncement = async (a: Omit<Announcement, "id" | "createdAt">) => {
+    try {
+        const res = await axios.post(`${API_URL}/announcements`, a);
+        return res.data;
+    } catch (err) {
+        console.error("Error adding announcement:", err);
     }
-    localStorage.setItem(LOYALTY_KEY, JSON.stringify(all));
 };
 
-export const redeemPoints = (email: string, points: number): boolean => {
-    const stored = localStorage.getItem(LOYALTY_KEY);
-    const all: LoyaltyData[] = stored ? JSON.parse(stored) : [];
-    const idx = all.findIndex(l => l.email === email);
-    if (idx !== -1 && all[idx].points >= points) {
-        all[idx].points -= points;
-        localStorage.setItem(LOYALTY_KEY, JSON.stringify(all));
+export const deleteAnnouncementApi = async (id: string) => {
+    try {
+        await axios.delete(`${API_URL}/announcements/${id}`);
+    } catch (err) {
+        console.error("Error deleting announcement:", err);
+    }
+};
+
+// ─── Loyalty ─────────────────────────────────────────────────────────────
+
+export const getLoyalty = async (email: string): Promise<LoyaltyData> => {
+    try {
+        const res = await axios.get(`${API_URL}/loyalty/${email}`);
+        return res.data;
+    } catch (err) {
+        console.error("Error fetching loyalty:", err);
+        return { email, points: 0, totalEarned: 0 };
+    }
+};
+
+export const addPointsApi = async (email: string, points: number) => {
+    try {
+        await axios.post(`${API_URL}/loyalty/update`, { email, pointsToAdd: points });
+    } catch (err) {
+        console.error("Error adding points:", err);
+    }
+};
+
+export const redeemPointsApi = async (email: string, points: number): Promise<boolean> => {
+    try {
+        await axios.post(`${API_URL}/loyalty/update`, { email, pointsToRedeem: points });
         return true;
+    } catch (err) {
+        console.error("Error redeeming points:", err);
+        return false;
     }
-    return false;
 };
-
-export const pointsToDiscount = (points: number) => (points / 100) * 2; // 100 pts = $2
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -209,8 +213,14 @@ export const generateId = () => Math.random().toString(36).substr(2, 9);
 export const now = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 export const today = () => new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 
-// Estimate wait: 4 mins per pending/preparing order  
-export const estimateWait = (): number => {
-    const orders = getStoredOrders().filter(o => o.status === "Pending" || o.status === "Preparing");
-    return Math.max(4, orders.length * 4);
+export const estimateWait = async (): Promise<number> => {
+    try {
+        const orders = await getStoredOrders();
+        const activeOrders = orders.filter(o => o.status === "Pending" || o.status === "Preparing");
+        return Math.max(4, activeOrders.length * 4);
+    } catch {
+        return 4;
+    }
 };
+
+export const pointsToDiscount = (points: number) => (points / 100) * 2;

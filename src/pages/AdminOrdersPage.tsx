@@ -11,8 +11,15 @@ const STATUS_FILTERS = ["All", "Pending", "Preparing", "Ready", "Completed"] as 
 const AdminOrdersPage = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>("All");
+  const [loading, setLoading] = useState(true);
 
-  const loadOrders = () => setOrders(getStoredOrders());
+  const loadOrders = async () => {
+    // Only show loader on initial load
+    if (orders.length === 0) setLoading(true);
+    const data = await getStoredOrders();
+    setOrders(data);
+    setLoading(false);
+  };
 
   useEffect(() => {
     loadOrders();
@@ -20,8 +27,8 @@ const AdminOrdersPage = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const handleStatusUpdate = (orderId: string, newStatus: Order["status"]) => {
-    updateOrderStatus(orderId, newStatus);
+  const handleStatusUpdate = async (orderId: string, newStatus: Order["status"]) => {
+    await updateOrderStatus(orderId, newStatus);
     loadOrders();
     toast.success(`Order updated to ${newStatus}`);
   };
@@ -38,7 +45,7 @@ const AdminOrdersPage = () => {
         <div className="flex items-center justify-between mb-1">
           <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Order Queue</h1>
           <button onClick={loadOrders} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center btn-press hover:bg-border transition">
-            <RefreshCw className="w-4 h-4 text-muted-foreground" />
+            <RefreshCw className={`w-4 h-4 text-muted-foreground ${loading && orders.length > 0 ? 'animate-spin' : ''}`} />
           </button>
         </div>
         <p className="text-muted-foreground text-sm mb-4">Manage live student orders. Auto-refreshes every 4s.</p>
@@ -74,8 +81,16 @@ const AdminOrdersPage = () => {
           ))}
         </div>
 
+        {/* Loading State */}
+        {loading && orders.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-4" />
+            <p className="text-sm font-medium">Loading orders from MongoDB...</p>
+          </div>
+        )}
+
         {/* Orders */}
-        {filtered.length === 0 ? (
+        {!loading && filtered.length === 0 ? (
           <div className="bg-card rounded-2xl p-8 text-center border border-border">
             <p className="text-4xl mb-3">📋</p>
             <p className="text-muted-foreground font-medium">No orders found</p>
@@ -84,7 +99,7 @@ const AdminOrdersPage = () => {
         ) : (
           <div className="space-y-3 mb-4">
             {filtered.map((order) => (
-              <div key={order.id} className="bg-card rounded-2xl p-4 card-shadow animate-fade-in border border-border">
+              <div key={order._id || order.id} className="bg-card rounded-2xl p-4 card-shadow animate-fade-in border border-border">
                 <div className="flex justify-between items-start mb-2">
                   <div>
                     <p className="font-semibold text-foreground">{order.student}</p>
@@ -100,16 +115,16 @@ const AdminOrdersPage = () => {
                 {order.status !== "Completed" && (
                   <div className="flex gap-2 mt-3">
                     {order.status === "Pending" && (
-                      <button onClick={() => handleStatusUpdate(order.id, "Preparing")} className="flex-1 h-9 rounded-lg bg-blue-500/15 text-blue-400 font-semibold text-xs btn-press hover:bg-blue-500/25 transition">▶ Start Preparing</button>
+                      <button onClick={() => handleStatusUpdate(order._id || order.id, "Preparing")} className="flex-1 h-9 rounded-lg bg-blue-500/15 text-blue-400 font-semibold text-xs btn-press hover:bg-blue-500/25 transition">▶ Start Preparing</button>
                     )}
                     {order.status === "Preparing" && (
-                      <button onClick={() => handleStatusUpdate(order.id, "Ready")} className="flex-1 h-9 rounded-lg bg-primary/15 text-primary font-semibold text-xs btn-press hover:bg-primary/25 transition">✓ Mark Ready</button>
+                      <button onClick={() => handleStatusUpdate(order._id || order.id, "Ready")} className="flex-1 h-9 rounded-lg bg-primary/15 text-primary font-semibold text-xs btn-press hover:bg-primary/25 transition">✓ Mark Ready</button>
                     )}
                     {order.status === "Ready" && (
-                      <button onClick={() => handleStatusUpdate(order.id, "Completed")} className="flex-1 h-9 rounded-lg bg-green-500/15 text-green-500 font-semibold text-xs btn-press hover:bg-green-500/25 transition">✅ Complete</button>
+                      <button onClick={() => handleStatusUpdate(order._id || order.id, "Completed")} className="flex-1 h-9 rounded-lg bg-green-500/15 text-green-500 font-semibold text-xs btn-press hover:bg-green-500/25 transition">✅ Complete</button>
                     )}
                     {(order.status === "Pending" || order.status === "Preparing" || order.status === "Ready") && (
-                      <button onClick={() => handleStatusUpdate(order.id, "Completed")} className="px-3 h-9 rounded-lg bg-muted text-muted-foreground font-semibold text-xs btn-press hover:bg-border transition">Skip</button>
+                      <button onClick={() => handleStatusUpdate(order._id || order.id, "Completed")} className="px-3 h-9 rounded-lg bg-muted text-muted-foreground font-semibold text-xs btn-press hover:bg-border transition">Skip</button>
                     )}
                   </div>
                 )}

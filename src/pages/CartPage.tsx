@@ -1,57 +1,72 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Minus, Plus, ArrowRight, Trash2, ShoppingBag, Tag } from "lucide-react";
 import { AppHeader } from "@/components/AppHeader";
 import { BottomNav } from "@/components/BottomNav";
 import { useCart } from "@/context/CartContext";
 import { Link } from "react-router-dom";
-import { saveOrder, getSession, generateToken, generateId, now, today, addPoints, getLoyalty, redeemPoints, pointsToDiscount } from "@/data/storage";
+import { saveOrder, getSession, generateToken, generateId, now, today, addPointsApi, getLoyalty, redeemPointsApi, pointsToDiscount } from "@/data/storage";
 import { toast } from "sonner";
 
 const CartPage = () => {
   const { items, updateQuantity, removeItem, totalPrice, clearCart } = useCart();
   const [paymentMethod, setPaymentMethod] = useState<"online" | "cash">("online");
   const [usePoints, setUsePoints] = useState(false);
+  const [loyalty, setLoyalty] = useState({ points: 0, totalEarned: 0, email: "" });
   const navigate = useNavigate();
   const session = getSession();
-  const loyalty = session ? getLoyalty(session.email) : { points: 0, totalEarned: 0, email: "" };
+
+  const loadLoyalty = async () => {
+    if (session) {
+      const data = await getLoyalty(session.email);
+      setLoyalty(data);
+    }
+  };
+
+  useEffect(() => {
+    loadLoyalty();
+  }, []);
 
   const tax = totalPrice * 0.05;
   const pointsDiscount = usePoints && loyalty.points >= 100 ? pointsToDiscount(Math.min(loyalty.points, 500)) : 0;
   const total = Math.max(0, totalPrice + tax - pointsDiscount);
   const pointsEarned = Math.round(totalPrice * 10);
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (items.length === 0) { toast.error("Your cart is empty!"); return; }
 
     const token = generateToken();
-    const order = {
+    const order: any = {
       id: generateId(),
       student: session?.name || "Student",
       studentEmail: session?.email || "guest@freshcanteen.com",
       items: items.map(i => `${i.quantity}x ${i.name}`).join(", "),
       token,
-      status: "Pending" as const,
+      status: "Pending",
       total: `$${total.toFixed(2)}`,
       totalNum: total,
       timestamp: now(),
       date: today(),
-      rating: undefined,
     };
 
-    saveOrder(order);
+    try {
+      const saved = await saveOrder(order);
 
-    // Points: earn for this order
-    addPoints(session?.email || "guest", pointsEarned);
-    // Points: deduct if redeemed
-    if (usePoints && loyalty.points >= 100) {
-      const toRedeem = Math.min(loyalty.points, 500);
-      redeemPoints(session?.email || "guest", toRedeem);
+      // Points: earn for this order
+      await addPointsApi(session?.email || "guest", pointsEarned);
+
+      // Points: deduct if redeemed
+      if (usePoints && loyalty.points >= 100) {
+        const toRedeem = Math.min(loyalty.points, 500);
+        await redeemPointsApi(session?.email || "guest", toRedeem);
+      }
+
+      clearCart();
+      toast.success(`🎉 Order placed! +${pointsEarned} loyalty points earned!`);
+      navigate("/order-success", { state: { order: saved, orderItems: items } });
+    } catch (err) {
+      toast.error("Failed to place order. Try again.");
     }
-
-    clearCart();
-    toast.success(`🎉 Order placed! +${pointsEarned} loyalty points earned!`);
-    navigate("/order-success", { state: { order, orderItems: items } });
   };
 
   if (items.length === 0) {
@@ -79,13 +94,13 @@ const CartPage = () => {
         {/* Cart Items */}
         <div className="space-y-4 mb-6">
           {items.map((item) => (
-            <div key={item.id} className="bg-card rounded-2xl p-4 card-shadow flex items-center gap-4 animate-fade-in">
+            <div key={item.id} className="bg-card rounded-2xl p-4 card-shadow flex items-center gap-4 animate-fade-in border border-border">
               <img src={item.image} alt={item.name} className="w-20 h-20 rounded-xl object-cover flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-foreground text-sm">{item.name}</h3>
-                <p className="text-xs text-muted-foreground">{item.tags.join(" • ")}</p>
-                <p className="font-bold text-primary mt-1">${Number(item.price).toFixed(2)}</p>
-                <p className="text-[10px] text-primary/70">+{Math.round(Number(item.price) * 10 * item.quantity)} pts</p>
+                <p className="text-xs text-muted-foreground mb-1">{item.category}</p>
+                <p className="font-bold text-primary">${Number(item.price).toFixed(2)}</p>
+                <p className="text-[10px] text-primary/70 font-bold">+{Math.round(Number(item.price) * 10 * item.quantity)} pts</p>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center btn-press">
