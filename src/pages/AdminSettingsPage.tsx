@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Settings, Bell, Lock, Globe, Moon, ShieldCheck, Trash2, Save, AlertTriangle } from "lucide-react";
 import { AppHeader } from "@/components/AppHeader";
 import { BottomNav } from "@/components/BottomNav";
-import { resetMenu, clearSession } from "@/data/storage";
+import { clearSession } from "@/data/storage";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
@@ -18,17 +18,11 @@ const AdminSettingsPage = () => {
     };
 
     const handleResetMenu = () => {
-        if (window.confirm("Reset menu to defaults? This will remove any custom items.")) {
-            resetMenu();
-            toast.success("Menu reset to defaults!");
-        }
+        toast.info("Database reset is managed via MongoDB cluster for security.");
     };
 
     const handleClearOrders = () => {
-        if (window.confirm("Clear ALL order history? This cannot be undone.")) {
-            localStorage.removeItem("fc_orders");
-            toast.success("Order history cleared");
-        }
+        toast.info("Order history management is handled on the server.");
     };
 
     const handleLogout = () => {
