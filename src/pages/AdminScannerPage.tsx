@@ -10,6 +10,7 @@ const AdminScannerPage = () => {
   const [tokenInput, setTokenInput] = useState("");
   const [scannedOrder, setScannedOrder] = useState<Order | null>(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
 
   const stopScanner = async () => {
@@ -52,8 +53,10 @@ const AdminScannerPage = () => {
       if (found) {
         setScannedOrder(found);
         setTokenInput(found.token);
+        setShowSuccess(true);
         toast.success(`Scanned: ${found.token}`);
         await stopScanner();
+        setTimeout(() => setShowSuccess(false), 2000);
       } else {
         // Try fallback search by token if the scanned text is a token number
         const byToken = orders.find(o => o.token.includes(decodedText) || decodedText.includes(o.token));
@@ -165,7 +168,7 @@ const AdminScannerPage = () => {
             )}
 
             {/* Success Overlay */}
-            {scannedOrder && (
+            {showSuccess && scannedOrder && (
               <div className="absolute inset-0 bg-primary/90 backdrop-blur-sm z-40 rounded-3xl flex flex-col items-center justify-center animate-fade-in text-primary-foreground">
                 <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center mb-4 scale-up-center">
                   <CheckCircle2 className="w-12 h-12 text-primary" />
