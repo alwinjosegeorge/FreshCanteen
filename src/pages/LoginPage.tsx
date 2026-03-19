@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, User } from "lucide-react";
-import { saveSession } from "@/data/storage";
+import { saveSession, API_URL } from "@/data/storage";
 import { toast } from "sonner";
+import axios from "axios";
 
 const ADMIN_EMAIL = "admin@freshcanteen.com";
 const ADMIN_PASS = "admin123";
@@ -31,9 +32,18 @@ const LoginPage = () => {
         }
       } else {
         if (admissionNumber && password) {
-          const session = { admissionNumber, name: "Student", role: "student" as const, id: "stu-" + admissionNumber.toLowerCase() };
+          const response = await axios.post(`${API_URL}/users/login`, { admissionNumber, password });
+          const user = response.data;
+
+          const session = {
+            admissionNumber: user.admissionNumber,
+            name: user.name,
+            role: user.role,
+            id: user._id || ("stu-" + user.admissionNumber.toLowerCase())
+          };
+
           await saveSession(session);
-          toast.success(`Welcome back!`);
+          toast.success(`Welcome back, ${user.name}!`);
           navigate("/menu");
         } else {
           toast.error("Please enter your admission number and password.");
