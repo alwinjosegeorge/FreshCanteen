@@ -140,12 +140,12 @@ const AdminScannerPage = () => {
 
           {/* Camera View Area */}
           <div className="relative mb-6 mx-auto w-full max-w-sm">
-            <div
-              id="reader"
-              className={`w-full aspect-[4/3] bg-zinc-900 rounded-3xl overflow-hidden border-4 border-card transition-all duration-500 card-shadow ${isScanning ? "ring-4 ring-primary/20 scale-[1.02]" : "opacity-40"}`}
-            >
+            <div className={`w-full aspect-[4/3] bg-zinc-900 rounded-3xl overflow-hidden border-4 border-card transition-all duration-500 card-shadow relative ${isScanning ? "ring-4 ring-primary/20 scale-[1.02]" : "opacity-40"}`}>
+              {/* html5-qrcode mounts here unconditionally */}
+              <div id="reader" className="w-full h-full absolute inset-0 z-0 bg-black"></div>
+
               {!isScanning && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-white/40">
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-white/40 bg-zinc-900 z-10">
                   <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-4">
                     <Camera className="w-10 h-10 opacity-20" />
                   </div>

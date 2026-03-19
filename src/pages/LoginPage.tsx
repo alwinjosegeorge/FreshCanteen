@@ -27,7 +27,7 @@ const LoginPage = () => {
             admissionNumber: "admin", name: "Admin", role: "admin", id: "admin-001"
           }));
           toast.success("Welcome, Admin!");
-          setTimeout(() => { window.location.replace("/admin"); }, 500);
+          setTimeout(() => { window.location.replace("/#/admin"); }, 500);
         } else {
           toast.error("Invalid admin credentials. Use admin / admin123");
           setLoading(false);
@@ -58,7 +58,7 @@ const LoginPage = () => {
         // Save with the correct key used by getSession()
         localStorage.setItem("fc_session", JSON.stringify(session));
         toast.success(`Welcome, ${user.name}!`);
-        setTimeout(() => { window.location.replace("/menu"); }, 700);
+        setTimeout(() => { window.location.replace("/#/menu"); }, 700);
       }
     } catch (error: any) {
       const msg = error.response?.data?.error || "Login failed. Please check your credentials.";
