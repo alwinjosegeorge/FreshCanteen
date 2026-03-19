@@ -1,6 +1,6 @@
 import axios from "axios";
 
-export const API_URL = "https://freshcanteen-render.onrender.com/api";
+export const API_URL = "https://freshcanteen.onrender.com/api";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
