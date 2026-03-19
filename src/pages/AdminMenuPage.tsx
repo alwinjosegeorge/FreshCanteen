@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Search, Plus, X, Check, Upload, ImagePlus } from "lucide-react";
 import { AppHeader } from "@/components/AppHeader";
 import { BottomNav } from "@/components/BottomNav";
-import { getStoredMenu, updateStoredMenu, MenuItem, deleteMenuItem } from "@/data/storage";
+import { getStoredMenu, updateStoredMenu, MenuItem, deleteMenuItem, formatPrice } from "@/data/storage";
 import { toast } from "sonner";
 
 const CATEGORIES = ["All Items", "Meals", "Snacks", "Drinks"] as const;
@@ -316,7 +316,7 @@ const AdminMenuPage = () => {
                   />
                   <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-foreground text-sm tracking-tight">{item.name}</h3>
-                    <p className="text-[10px] font-bold text-primary uppercase tracking-wider">₹{Number(item.price).toFixed(2)} · {item.calories} kcal</p>
+                    <p className="text-[10px] font-bold text-primary uppercase tracking-wider">{formatPrice(item.price)} · {item.calories} kcal</p>
                     <div className="flex gap-1.5 flex-wrap mt-1">
                       {item.tags.map((t) => <span key={t} className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-md bg-muted text-muted-foreground">{t}</span>)}
                     </div>

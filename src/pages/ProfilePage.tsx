@@ -3,7 +3,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { BottomNav } from "@/components/BottomNav";
 import { User, Settings, CreditCard, HelpCircle, LogOut, ClipboardList, Bell, ChevronRight, Star } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { getSession, clearSession, getStoredOrders, Order, getLoyalty, rateOrderApi } from "@/data/storage";
+import { getSession, clearSession, getStoredOrders, Order, getLoyalty, rateOrderApi, formatPrice } from "@/data/storage";
 import { toast } from "sonner";
 
 const StarRating = ({ orderId, current, onRate }: { orderId: string; current?: number; onRate: () => void }) => {
@@ -100,7 +100,7 @@ const ProfilePage = () => {
           <p className="text-sm opacity-80 mt-0.5">available points</p>
           <div className="flex items-center justify-between mt-4">
             <p className="text-[10px] opacity-60">{loyalty.totalEarned} total earned</p>
-            <p className="text-[10px] font-bold opacity-80">100 pts = ₹2 off 🎁</p>
+            <p className="text-[10px] font-bold opacity-80">100 pts = {formatPrice(2)} off 🎁</p>
           </div>
           {/* Progress to next tier */}
           <div className="mt-3">
@@ -129,7 +129,7 @@ const ProfilePage = () => {
                 <p className="text-[9px] font-bold uppercase text-muted-foreground">Completed</p>
               </div>
               <div className="bg-card rounded-2xl p-3 card-shadow text-center border border-border">
-                <p className="text-2xl font-black text-primary">₹{totalSpent.toFixed(0)}</p>
+                <p className="text-2xl font-black text-primary">{formatPrice(totalSpent)}</p>
                 <p className="text-[9px] font-bold uppercase text-muted-foreground">Spent</p>
               </div>
             </div>

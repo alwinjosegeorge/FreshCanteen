@@ -224,3 +224,10 @@ export const estimateWait = async (): Promise<number> => {
 };
 
 export const pointsToDiscount = (points: number) => (points / 100) * 2;
+export const formatPrice = (price: number | string) => {
+    return new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        minimumFractionDigits: 2
+    }).format(Number(price));
+};
