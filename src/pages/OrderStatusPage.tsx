@@ -4,6 +4,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { BottomNav } from "@/components/BottomNav";
 import { getStoredOrders, getSession, Order, estimateWait } from "@/data/storage";
 import { Link } from "react-router-dom";
+import { QRCodeCanvas } from "qrcode.react";
 
 const steps = [
   { label: "Pending", icon: CheckCircle2, desc: "Order received by kitchen" },
@@ -135,6 +136,30 @@ const OrderStatusPage = () => {
                 <p className="text-xs text-muted-foreground">Placed at {selectedOrder.timestamp} • {selectedOrder.total}</p>
               </div>
             </div>
+
+            {/* QR Code Section */}
+            {selectedOrder.status !== "Completed" && (
+              <div className="bg-white rounded-3xl p-6 mb-4 flex flex-col items-center justify-center card-shadow border border-border animate-fade-in">
+                <div className="p-4 bg-white rounded-2xl border-4 border-primary/10 mb-3">
+                  <QRCodeCanvas
+                    value={selectedOrder._id || selectedOrder.id}
+                    size={180}
+                    level="H"
+                    includeMargin={false}
+                    imageSettings={{
+                      src: "/placeholder.svg",
+                      x: undefined,
+                      y: undefined,
+                      height: 24,
+                      width: 24,
+                      excavate: true,
+                    }}
+                  />
+                </div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-1">Canteen Pickup QR</p>
+                <p className="text-xs text-muted-foreground text-center px-4">Show this code at the counter to collect your order</p>
+              </div>
+            )}
 
             {/* Progress Steps */}
             <div className="bg-card rounded-2xl p-6 card-shadow mb-4 animate-fade-in">

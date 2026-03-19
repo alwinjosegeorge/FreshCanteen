@@ -1,33 +1,81 @@
-import { useState } from "react";
-import { CheckCircle2, User, RotateCcw } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { CheckCircle2, User, RotateCcw, Camera, CameraOff, Search } from "lucide-react";
 import { AppHeader } from "@/components/AppHeader";
 import { BottomNav } from "@/components/BottomNav";
 import { getStoredOrders, updateOrderStatus, Order } from "@/data/storage";
 import { toast } from "sonner";
+import { Html5Qrcode } from "html5-qrcode";
 
 const AdminScannerPage = () => {
   const [tokenInput, setTokenInput] = useState("");
   const [scannedOrder, setScannedOrder] = useState<Order | null>(null);
-  const [scanning, setScanning] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
 
-  const simulateScan = async () => {
-    setScanning(true);
+  const stopScanner = async () => {
+    if (scannerRef.current && scannerRef.current.isScanning) {
+      await scannerRef.current.stop();
+    }
+    setIsScanning(false);
+  };
+
+  const startScanner = async () => {
     try {
-      const orders = await getStoredOrders();
-      const active = orders.filter(o => o.status !== "Completed");
-      if (active.length > 0) {
-        setScannedOrder(active[0]);
-        setTokenInput(active[0].token);
-        toast.success("Token detected!");
-      } else {
-        toast.error("No active orders to scan");
-      }
+      const html5QrCode = new Html5Qrcode("reader");
+      scannerRef.current = html5QrCode;
+      setIsScanning(true);
+
+      await html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        async (decodedText) => {
+          // Scanned successfully
+          await handleScannedResult(decodedText);
+        },
+        () => {
+          // Error/Still scanning
+        }
+      );
     } catch (err) {
-      toast.error("Error scanning orders");
-    } finally {
-      setScanning(false);
+      console.error("Scanner start error:", err);
+      toast.error("Could not access camera");
+      setIsScanning(false);
     }
   };
+
+  const handleScannedResult = async (decodedText: string) => {
+    try {
+      // The decoded text is expected to be the order ID (_id or id)
+      const orders = await getStoredOrders();
+      const found = orders.find(o => (o._id || o.id) === decodedText);
+
+      if (found) {
+        setScannedOrder(found);
+        setTokenInput(found.token);
+        toast.success(`Scanned: ${found.token}`);
+        await stopScanner();
+      } else {
+        // Try fallback search by token if the scanned text is a token number
+        const byToken = orders.find(o => o.token.includes(decodedText) || decodedText.includes(o.token));
+        if (byToken) {
+          setScannedOrder(byToken);
+          setTokenInput(byToken.token);
+          toast.success(`Found by token: ${byToken.token}`);
+          await stopScanner();
+        } else {
+          toast.error("Order not found in database");
+        }
+      }
+    } catch (err) {
+      toast.error("Error identifying scanned order");
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      stopScanner();
+    };
+  }, []);
 
   const searchByToken = async () => {
     if (!tokenInput.trim()) {
@@ -80,37 +128,56 @@ const AdminScannerPage = () => {
 
         {/* Token Scanner Area */}
         <div className="bg-card rounded-3xl p-6 border border-border card-shadow text-center mb-6">
-          <h2 className="font-bold text-foreground mb-1">Token Lookup</h2>
-          <p className="text-xs text-muted-foreground mb-6">Tap to simulate scan, or enter token manually</p>
+          <h2 className="font-bold text-foreground mb-1">QR Pickup Scanner</h2>
+          <p className="text-xs text-muted-foreground mb-6">Point camera at student's order QR code</p>
 
-          {/* Simulated Camera View */}
-          <div
-            onClick={simulateScan}
-            className={`w-full aspect-[4/3] bg-zinc-900 rounded-2xl flex items-center justify-center relative overflow-hidden cursor-pointer mb-6 border border-border/50 transition ${scanning ? "opacity-70" : ""}`}
-          >
-            <div className="absolute inset-8 border-2 border-primary/40 rounded-2xl" />
-            <div className="absolute inset-x-8 h-0.5 bg-primary/60 shadow-[0_0_15px_rgba(0,0,0,0.5)] animate-scan-line" style={{ top: "40%" }} />
-            <div className="absolute top-4 left-4 flex gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-              <div className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Live Capture</div>
+          {/* Camera View Area */}
+          <div className="relative mb-6">
+            <div
+              id="reader"
+              className={`w-full aspect-[4/3] bg-zinc-900 rounded-2xl overflow-hidden border border-border/50 transition ${isScanning ? "opacity-100" : "opacity-40"}`}
+            >
+              {!isScanning && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-white/40">
+                  <Camera className="w-12 h-12 mb-3 opacity-20" />
+                  <p className="text-[10px] font-bold uppercase tracking-widest">Camera Offline</p>
+                </div>
+              )}
             </div>
-            {scanning ? (
-              <p className="text-white/60 text-sm font-bold z-10">Scanning...</p>
-            ) : (
-              <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest z-10">Tap to Simulate Scan</p>
+
+            {isScanning && (
+              <div className="absolute inset-8 border-2 border-primary/40 rounded-2xl pointer-events-none" />
             )}
+
+            <button
+              onClick={isScanning ? stopScanner : startScanner}
+              className={`absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-6 h-12 rounded-full font-bold text-sm shadow-xl transition-all btn-press ${isScanning ? "bg-destructive text-white" : "bg-primary text-primary-foreground"}`}
+            >
+              {isScanning ? (
+                <>
+                  <CameraOff className="w-4 h-4" /> Stop Scanning
+                </>
+              ) : (
+                <>
+                  <Camera className="w-4 h-4" /> Start Camera
+                </>
+              )}
+            </button>
           </div>
 
           {/* Manual Token Input */}
           <div className="flex gap-2">
-            <input
-              value={tokenInput}
-              onChange={e => setTokenInput(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && searchByToken()}
-              placeholder="Enter token (e.g. 108 or #TK-108)"
-              className="flex-1 h-11 px-4 rounded-xl bg-muted text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary outline-none text-sm"
-            />
-            <button onClick={searchByToken} className="px-4 h-11 rounded-xl bg-primary text-primary-foreground font-bold text-sm btn-press">Search</button>
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                value={tokenInput}
+                onChange={e => setTokenInput(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && searchByToken()}
+                placeholder="Enter token manually..."
+                className="w-full h-11 pl-10 pr-4 rounded-xl bg-muted text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary outline-none text-sm transition"
+              />
+            </div>
+            <button onClick={searchByToken} className="px-5 h-11 rounded-xl bg-primary text-primary-foreground font-bold text-sm btn-press">Go</button>
           </div>
         </div>
 
