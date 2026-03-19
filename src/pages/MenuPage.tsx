@@ -18,7 +18,7 @@ const ItemModal = ({ item, onClose, onAdd }: { item: MenuItem; onClose: () => vo
       <img src={item.image} alt={item.name} className="w-full h-48 object-cover rounded-2xl mb-4" />
       <div className="flex items-start justify-between mb-2">
         <h2 className="text-xl font-extrabold text-foreground pr-8">{item.name}</h2>
-        <span className="text-xl font-black text-primary">${Number(item.price).toFixed(2)}</span>
+        <span className="text-xl font-black text-primary">₹{Number(item.price).toFixed(2)}</span>
       </div>
       <div className="flex gap-2 mb-4 flex-wrap">
         {item.tags.map(t => <span key={t} className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-accent text-accent-foreground">{t}</span>)}
@@ -49,7 +49,7 @@ const ItemModal = ({ item, onClose, onAdd }: { item: MenuItem; onClose: () => vo
         onClick={() => { onAdd(); onClose(); }}
         className="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-bold text-base btn-press hover:opacity-90 transition flex items-center justify-center gap-2"
       >
-        <ShoppingCart className="w-5 h-5" /> Add to Cart — ${Number(item.price).toFixed(2)}
+        <ShoppingCart className="w-5 h-5" /> Add to Cart — ₹{Number(item.price).toFixed(2)}
       </button>
     </div>
   </div>
@@ -199,7 +199,7 @@ const MenuPage = () => {
                   <div className="p-4">
                     <div className="flex items-center justify-between mb-1">
                       <h3 className="font-semibold text-foreground">{item.name}</h3>
-                      <span className="font-bold text-primary">${Number(item.price).toFixed(2)}</span>
+                      <span className="font-bold text-primary">₹{Number(item.price).toFixed(2)}</span>
                     </div>
                     <div className="flex items-center gap-2 mb-3 flex-wrap">
                       {item.tags.map((tag) => (

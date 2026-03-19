@@ -43,7 +43,7 @@ const CartPage = () => {
       items: items.map(i => `${i.quantity}x ${i.name}`).join(", "),
       token,
       status: "Pending",
-      total: `$${total.toFixed(2)}`,
+      total: `₹${total.toFixed(2)}`,
       totalNum: total,
       timestamp: now(),
       date: today(),
@@ -99,7 +99,7 @@ const CartPage = () => {
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-foreground text-sm">{item.name}</h3>
                 <p className="text-xs text-muted-foreground mb-1">{item.category}</p>
-                <p className="font-bold text-primary">${Number(item.price).toFixed(2)}</p>
+                <p className="font-bold text-primary">₹{Number(item.price).toFixed(2)}</p>
                 <p className="text-[10px] text-primary/70 font-bold">+{Math.round(Number(item.price) * 10 * item.quantity)} pts</p>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
@@ -123,7 +123,7 @@ const CartPage = () => {
                 <span className="text-lg">🏅</span>
                 <div>
                   <p className="font-bold text-foreground text-sm">Redeem Loyalty Points</p>
-                  <p className="text-xs text-muted-foreground">You have {loyalty.points} pts → saves ${pointsToDiscount(Math.min(loyalty.points, 500)).toFixed(2)}</p>
+                  <p className="text-xs text-muted-foreground">You have {loyalty.points} pts → saves ₹{pointsToDiscount(Math.min(loyalty.points, 500)).toFixed(2)}</p>
                 </div>
               </div>
               <button
@@ -158,13 +158,13 @@ const CartPage = () => {
 
           <h3 className="font-bold text-foreground mb-3">Order Summary</h3>
           <div className="space-y-2 text-sm">
-            <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="font-bold">${totalPrice.toFixed(2)}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Service Tax (5%)</span><span className="font-bold">${tax.toFixed(2)}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="font-bold">₹{totalPrice.toFixed(2)}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Service Tax (5%)</span><span className="font-bold">₹{tax.toFixed(2)}</span></div>
             {usePoints && pointsDiscount > 0 && (
-              <div className="flex justify-between"><span className="text-primary flex items-center gap-1"><Tag className="w-3 h-3" /> Points Discount</span><span className="font-bold text-primary">-${pointsDiscount.toFixed(2)}</span></div>
+              <div className="flex justify-between"><span className="text-primary flex items-center gap-1"><Tag className="w-3 h-3" /> Points Discount</span><span className="font-bold text-primary">-₹{pointsDiscount.toFixed(2)}</span></div>
             )}
             <div className="border-t border-border my-3" />
-            <div className="flex justify-between text-xl"><span className="font-extrabold">Total</span><span className="font-extrabold text-primary">${total.toFixed(2)}</span></div>
+            <div className="flex justify-between text-xl"><span className="font-extrabold">Total</span><span className="font-extrabold text-primary">₹{total.toFixed(2)}</span></div>
           </div>
         </div>
 

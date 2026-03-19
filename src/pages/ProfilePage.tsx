@@ -100,7 +100,7 @@ const ProfilePage = () => {
           <p className="text-sm opacity-80 mt-0.5">available points</p>
           <div className="flex items-center justify-between mt-4">
             <p className="text-[10px] opacity-60">{loyalty.totalEarned} total earned</p>
-            <p className="text-[10px] font-bold opacity-80">100 pts = $2 off 🎁</p>
+            <p className="text-[10px] font-bold opacity-80">100 pts = ₹2 off 🎁</p>
           </div>
           {/* Progress to next tier */}
           <div className="mt-3">
@@ -129,7 +129,7 @@ const ProfilePage = () => {
                 <p className="text-[9px] font-bold uppercase text-muted-foreground">Completed</p>
               </div>
               <div className="bg-card rounded-2xl p-3 card-shadow text-center border border-border">
-                <p className="text-2xl font-black text-primary">${totalSpent.toFixed(0)}</p>
+                <p className="text-2xl font-black text-primary">₹{totalSpent.toFixed(0)}</p>
                 <p className="text-[9px] font-bold uppercase text-muted-foreground">Spent</p>
               </div>
             </div>

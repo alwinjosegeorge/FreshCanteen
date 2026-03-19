@@ -62,7 +62,7 @@ const AdminDashboard = () => {
 
   const stats = [
     { icon: ClipboardList, label: "PENDING ORDERS", value: pending.toString(), change: `${preparing} preparing`, bg: "bg-primary/10" },
-    { icon: DollarSign, label: "TOTAL REVENUE", value: `$${totalRevenue.toFixed(2)}`, change: `${orders.length} orders total`, bg: "bg-primary/10" },
+    { icon: DollarSign, label: "TOTAL REVENUE", value: `₹${totalRevenue.toFixed(2)}`, change: `${orders.length} orders total`, bg: "bg-primary/10" },
     { icon: ShoppingBag, label: "READY FOR PICKUP", value: ready.toString(), change: `${completed} completed`, bg: "bg-primary/10" },
     { icon: Users, label: "TOTAL STUDENTS", value: new Set(orders.map(o => o.studentEmail)).size.toString(), change: "Unique customers", bg: "bg-primary/10" },
   ];

@@ -205,7 +205,7 @@ const AdminMenuPage = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">Price ($) *</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">Price (₹) *</label>
                   <input
                     value={newItem.price}
                     onChange={e => setNewItem(p => ({ ...p, price: e.target.value }))}
@@ -316,7 +316,7 @@ const AdminMenuPage = () => {
                   />
                   <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-foreground text-sm tracking-tight">{item.name}</h3>
-                    <p className="text-[10px] font-bold text-primary uppercase tracking-wider">${Number(item.price).toFixed(2)} · {item.calories} kcal</p>
+                    <p className="text-[10px] font-bold text-primary uppercase tracking-wider">₹{Number(item.price).toFixed(2)} · {item.calories} kcal</p>
                     <div className="flex gap-1.5 flex-wrap mt-1">
                       {item.tags.map((t) => <span key={t} className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-md bg-muted text-muted-foreground">{t}</span>)}
                     </div>

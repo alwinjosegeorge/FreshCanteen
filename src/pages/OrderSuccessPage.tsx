@@ -47,12 +47,12 @@ const OrderSuccessPage = () => {
                   <p className="font-medium text-foreground text-sm">{item.name}</p>
                   <p className="text-xs text-muted-foreground">{item.tags.join(" • ")} × {item.quantity}</p>
                 </div>
-                <span className="font-medium text-sm">${(Number(item.price) * item.quantity).toFixed(2)}</span>
+                <span className="font-medium text-sm">₹{(Number(item.price) * item.quantity).toFixed(2)}</span>
               </div>
             ))}
             <div className="border-t border-border mt-3 pt-3 flex justify-between">
               <span className="font-semibold text-foreground">Total Paid</span>
-              <span className="font-bold text-primary">{order?.total || `$${totalPaid.toFixed(2)}`}</span>
+              <span className="font-bold text-primary">{order?.total || `₹${totalPaid.toFixed(2)}`}</span>
             </div>
           </div>
         )}
