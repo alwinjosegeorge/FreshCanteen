@@ -61,7 +61,7 @@ const LoginPage = () => {
       setAdmissionNumber("admin");
       setPassword("admin123");
     } else {
-      setAdmissionNumber("24CS044");
+      setAdmissionNumber("SJC24CS044");
       setPassword("123456");
     }
   };
@@ -119,7 +119,7 @@ const LoginPage = () => {
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <input
                     type="text"
-                    placeholder={isAdmin ? "admin" : "24CS044"}
+                    placeholder={isAdmin ? "admin" : "SJC24CS044"}
                     value={admissionNumber}
                     onChange={(e) => setAdmissionNumber(e.target.value)}
                     required

@@ -121,13 +121,22 @@ app.delete('/api/announcements/:id', async (req, res) => {
 
 app.post('/api/users/login', async (req, res) => {
     try {
-        const { admissionNumber, name, password, role } = req.body;
-        let user = await User.findOne({ admissionNumber });
+        const { admissionNumber, password } = req.body;
+        if (!admissionNumber) return res.status(400).json({ error: "Admission number is required" });
+
+        const possibleIds = [
+            admissionNumber.toUpperCase(),
+            `SJC${admissionNumber.toUpperCase()}`,
+            admissionNumber.toUpperCase().replace(/^SJC/, '')
+        ];
+
+        let user = await User.findOne({ admissionNumber: { $in: possibleIds } });
+
         if (!user) {
-            // Self-signup for non-imported users if name is provided (or for admin)
-            user = new User({ admissionNumber, name: name || 'Student', password: password || '123456', role: role || 'student' });
-            await user.save();
-        } else if (password && user.password !== password) {
+            return res.status(404).json({ error: "Student not found. Please check your Admission Number." });
+        }
+
+        if (password && user.password !== password) {
             return res.status(401).json({ error: "Invalid password" });
         }
         res.json(user);

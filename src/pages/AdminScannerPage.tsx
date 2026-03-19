@@ -135,35 +135,63 @@ const AdminScannerPage = () => {
           <div className="relative mb-6">
             <div
               id="reader"
-              className={`w-full aspect-[4/3] bg-zinc-900 rounded-2xl overflow-hidden border border-border/50 transition ${isScanning ? "opacity-100" : "opacity-40"}`}
+              className={`w-full aspect-[4/3] bg-zinc-900 rounded-3xl overflow-hidden border-4 border-card transition-all duration-500 card-shadow ${isScanning ? "ring-4 ring-primary/20 scale-[1.02]" : "opacity-40"}`}
             >
               {!isScanning && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-white/40">
-                  <Camera className="w-12 h-12 mb-3 opacity-20" />
-                  <p className="text-[10px] font-bold uppercase tracking-widest">Camera Offline</p>
+                  <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-4">
+                    <Camera className="w-10 h-10 opacity-20" />
+                  </div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em]">Scanner Offline</p>
                 </div>
               )}
             </div>
 
             {isScanning && (
-              <div className="absolute inset-8 border-2 border-primary/40 rounded-2xl pointer-events-none" />
+              <>
+                <div className="absolute inset-x-12 top-1/2 -translate-y-1/2 aspect-square border-2 border-primary/60 rounded-3xl pointer-events-none z-10">
+                  <div className="absolute inset-0 border-4 border-white/20 rounded-3xl animate-pulse" />
+                </div>
+                {/* Scanning Line */}
+                <div className="absolute inset-x-8 h-1 bg-gradient-to-r from-transparent via-primary to-transparent shadow-[0_0_15px_rgba(var(--primary),0.8)] animate-scan-line z-20" style={{ top: "30%" }} />
+
+                <div className="absolute top-4 left-4 right-4 flex justify-between items-center z-30">
+                  <div className="px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                    <span className="text-[10px] font-black text-white uppercase tracking-widest">Live Capture</span>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Success Overlay */}
+            {scannedOrder && (
+              <div className="absolute inset-0 bg-primary/90 backdrop-blur-sm z-40 rounded-3xl flex flex-col items-center justify-center animate-fade-in text-primary-foreground">
+                <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center mb-4 scale-up-center">
+                  <CheckCircle2 className="w-12 h-12 text-primary" />
+                </div>
+                <h3 className="text-xl font-black mb-1">Order Found!</h3>
+                <p className="text-sm opacity-80 mb-6">Token {scannedOrder.token}</p>
+                <button onClick={() => { }} className="px-6 py-2 rounded-xl bg-white text-primary font-bold text-sm">View Details</button>
+              </div>
             )}
 
             <button
               onClick={isScanning ? stopScanner : startScanner}
-              className={`absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-6 h-12 rounded-full font-bold text-sm shadow-xl transition-all btn-press ${isScanning ? "bg-destructive text-white" : "bg-primary text-primary-foreground"}`}
+              className={`absolute -bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 px-8 h-14 rounded-2xl font-black text-sm shadow-2xl transition-all active:scale-95 z-50 ${isScanning ? "bg-zinc-800 text-white border border-white/10" : "bg-primary text-primary-foreground"}`}
             >
               {isScanning ? (
                 <>
-                  <CameraOff className="w-4 h-4" /> Stop Scanning
+                  <CameraOff className="w-5 h-5" /> STOP SCANNER
                 </>
               ) : (
                 <>
-                  <Camera className="w-4 h-4" /> Start Camera
+                  <Camera className="w-5 h-5" /> START CAMERA
                 </>
               )}
             </button>
           </div>
+          <div className="h-6" /> {/* Spacer for the floating button */}
 
           {/* Manual Token Input */}
           <div className="flex gap-2">
